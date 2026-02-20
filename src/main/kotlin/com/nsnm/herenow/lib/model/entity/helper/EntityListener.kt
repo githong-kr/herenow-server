@@ -36,11 +36,11 @@ class EntityListener {
         isCreate: Boolean
     ) {
         if (isCreate) {
-            entity.frstRegApiId = apiId
+            // entity.frstRegApiId = apiId  // 삭제됨
             entity.frstRegTmst = currentTimestamp
             entity.frstRegGuid = guid
         }
-        entity.lastChngApiId = apiId
+        // entity.lastChngApiId = apiId  // 삭제됨
         entity.lastChngTmst = currentTimestamp
         entity.lastChngGuid = guid
     }

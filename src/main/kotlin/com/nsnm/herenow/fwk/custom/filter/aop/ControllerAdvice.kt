@@ -21,10 +21,16 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import kotlin.system.measureTimeMillis
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.nsnm.herenow.lib.model.entity.log.ApiCallLogEntity
+import com.nsnm.herenow.lib.model.repository.log.ApiCallLogRepository
+
 @Aspect
 @Component
 class ControllerAdvice(
-    private val env: Environment
+    private val env: Environment,
+    private val apiCallLogRepository: ApiCallLogRepository,
+    private val objectMapper: ObjectMapper
 ) {
     private val log = logger()
 
@@ -48,14 +54,29 @@ class ControllerAdvice(
 
         // 실제 메서드 실행
         log.info(">>>>>  controller start [$signatureName() from [${req.remoteAddr}] by ${req.method} ${req.requestURI}[${ca.pathPattern}]")
+        
+        var reqBodyStr: String? = null
+        try {
+            val validArgs = pjp.args.filter { 
+                it != null && 
+                it !is jakarta.servlet.http.HttpServletRequest && 
+                it !is jakarta.servlet.http.HttpServletResponse 
+            }
+            if (validArgs.isNotEmpty()) {
+                reqBodyStr = objectMapper.writeValueAsString(if (validArgs.size == 1) validArgs[0] else validArgs)
+            }
+        } catch (e: Exception) {
+            log.warn("Failed to serialize request args: ${e.message}")
+        }
+
         try {
             ca.elapsed = measureTimeMillis {
                 result = pjp.proceed()
             }
-            saveTransaction() // 거래내역 저장
+            saveTransaction(null, reqBodyStr) // 거래내역 저장
         } catch (e: Exception) {
             log.info("[${ca.guid}] <<<<<  controller   end [$signatureName() from [${ca.remoteIp}] [${ca.elapsed}ms] with Error [${e.javaClass.simpleName}]")
-            saveTransaction(e) // 거래내역 저장
+            saveTransaction(e, reqBodyStr) // 거래내역 저장
             throw e
         } finally {
             log.info("<<<<<  controller   end [$signatureName() from [${ca.remoteIp}] [${ca.elapsed}ms]")
@@ -85,7 +106,7 @@ class ControllerAdvice(
     /**
      * 거래내역 저장
      */
-    fun saveTransaction(ex: Exception? = null) {
+    fun saveTransaction(ex: Exception? = null, reqBodyStr: String? = null) {
         val context = CustomContextHolder.getContext()
         val response =
             (RequestContextHolder.getRequestAttributes() as ServletRequestAttributes).response as HttpServletResponse
@@ -110,6 +131,29 @@ class ControllerAdvice(
             // status code
             if (ex is BaseException) ca.statCd = ex.httpStatus.value().toString()
             else ca.statCd = "500"
+        }
+
+        val req = (RequestContextHolder.getRequestAttributes() as ServletRequestAttributes).request
+
+        // ApiCallLogEntity 생성 및 저장
+        val apiCallLog = ApiCallLogEntity(
+            reqGuid = ca.guid,
+            apiKey = ca.apiKey,
+            serviceNm = req.requestURI, // URI를 서비스명 필드로 임시 매핑
+            reqUrl = req.requestURL.toString(), 
+            clientIp = ca.remoteIp,
+            reqParam = req.queryString,
+            reqBody = reqBodyStr,
+            elapsedMs = ca.elapsed,
+            errYn = if (ex != null) "Y" else "N",
+            errMsg = if (ca.errMsg != null && ca.errMsg!!.length > 1000) ca.errMsg!!.substring(0, 1000) else ca.errMsg,
+            errStack = if (ex != null) ex.stackTraceToString() else null
+        )
+        
+        try {
+            apiCallLogRepository.save(apiCallLog)
+        } catch (e: Exception) {
+            log.error("Failed to save API Call Log", e)
         }
     }
 }
