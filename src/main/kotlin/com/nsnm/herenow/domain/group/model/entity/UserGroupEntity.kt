@@ -18,5 +18,7 @@ class UserGroupEntity(
     
     var groupName: String,
     
-    var ownerProfileId: String
+    var ownerProfileId: String,
+    
+    var inviteCode: String? = null
 ) : BaseEntity()
