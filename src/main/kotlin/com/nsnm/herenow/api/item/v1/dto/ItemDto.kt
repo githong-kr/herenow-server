@@ -18,6 +18,21 @@ data class CreateItemRequest(
     val photoUrls: List<String> = emptyList() // 첨부될 사진 경로 리스트 
 )
 
+data class UpdateItemRequest(
+    val categoryId: String? = null,
+    val locationId: String? = null,
+    val itemName: String,
+    val quantity: Int = 1,
+    val minQuantity: Int = 0,
+    val purchaseDate: LocalDate? = null,
+    val purchasePlace: String? = null,
+    val price: BigDecimal? = null,
+    val expiryDate: LocalDate? = null,
+    val memo: String? = null,
+    val tags: List<String> = emptyList(),
+    val photoUrls: List<String> = emptyList()
+)
+
 data class ItemResponse(
     val itemId: String,
     val itemName: String,

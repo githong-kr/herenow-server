@@ -16,6 +16,13 @@ data class CreateCategoryRequest(
     val displayOrder: Int = 0
 )
 
+data class UpdateCategoryRequest(
+    val categoryName: String,
+    val iconName: String? = null,
+    val parentCategoryId: String? = null,
+    val displayOrder: Int = 0
+)
+
 // Location DTOs
 data class LocationDto(
     val locationId: String,
@@ -34,6 +41,14 @@ data class CreateLocationRequest(
     val displayOrder: Int = 0
 )
 
+data class UpdateLocationRequest(
+    val locationName: String,
+    val iconName: String? = null,
+    val photoUrl: String? = null,
+    val parentLocationId: String? = null,
+    val displayOrder: Int = 0
+)
+
 // Tag DTOs
 data class TagDto(
     val tagId: String,
@@ -41,5 +56,9 @@ data class TagDto(
 )
 
 data class CreateTagRequest(
+    val tagName: String
+)
+
+data class UpdateTagRequest(
     val tagName: String
 )

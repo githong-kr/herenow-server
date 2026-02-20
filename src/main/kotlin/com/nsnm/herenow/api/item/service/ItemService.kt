@@ -2,6 +2,7 @@ package com.nsnm.herenow.api.item.service
 
 import com.nsnm.herenow.api.item.v1.dto.CreateItemRequest
 import com.nsnm.herenow.api.item.v1.dto.ItemResponse
+import com.nsnm.herenow.api.item.v1.dto.UpdateItemRequest
 import com.nsnm.herenow.domain.item.model.entity.ItemEntity
 import com.nsnm.herenow.domain.item.model.entity.ItemPhotoEntity
 import com.nsnm.herenow.domain.item.model.entity.ItemTagEntity
@@ -92,5 +93,84 @@ class ItemService(
             tags = savedTagNames,
             photoUrls = savedPhotos.map { it.photoUrl }
         )
+    }
+
+    @Transactional
+    fun updateItem(groupId: String, itemId: String, request: UpdateItemRequest): ItemResponse {
+        val itemEntity = itemRepository.findById(itemId)
+            .filter { it.groupId == groupId }
+            .orElseThrow { BizException("존재하지 않거나 권한이 없는 아이템입니다.") }
+
+        if (request.categoryId != null && !categoryRepository.existsById(request.categoryId)) {
+            throw BizException("존재하지 않는 카테고리입니다.")
+        }
+        if (request.locationId != null && !locationRepository.existsById(request.locationId)) {
+            throw BizException("존재하지 않는 보관장소입니다.")
+        }
+
+        // 1. 아이템 정보 업데이트
+        itemEntity.apply {
+            categoryId = request.categoryId
+            locationId = request.locationId
+            itemName = request.itemName
+            quantity = request.quantity
+            minQuantity = request.minQuantity
+            purchaseDate = request.purchaseDate
+            purchasePlace = request.purchasePlace
+            price = request.price
+            expiryDate = request.expiryDate
+            memo = request.memo
+        }
+        val savedItem = itemRepository.save(itemEntity)
+
+        // 2. 사진 정보 업데이트 (기존 삭제 후 재생성)
+        itemPhotoRepository.deleteByItemId(itemId)
+        val savedPhotos = request.photoUrls.mapIndexed { index, url ->
+            itemPhotoRepository.save(ItemPhotoEntity(
+                itemId = savedItem.itemId,
+                photoUrl = url,
+                displayOrder = index
+            ))
+        }
+
+        // 3. 태그 정보 업데이트 (기존 매핑 삭제 후 재생성)
+        itemTagRepository.deleteByItemId(itemId)
+        val savedTagNames = mutableListOf<String>()
+        request.tags.forEach { tagNameOrId ->
+            val existingTags = tagRepository.findByGroupId(groupId)
+            var tag = existingTags.find { it.tagName == tagNameOrId || it.tagId == tagNameOrId }
+            if (tag == null) {
+                tag = tagRepository.save(TagEntity(groupId = groupId, tagName = tagNameOrId))
+            }
+            itemTagRepository.save(ItemTagEntity(
+                itemId = savedItem.itemId,
+                tagId = tag.tagId
+            ))
+            savedTagNames.add(tag.tagName)
+        }
+
+        return ItemResponse(
+            itemId = savedItem.itemId,
+            itemName = savedItem.itemName,
+            categoryId = savedItem.categoryId,
+            locationId = savedItem.locationId,
+            quantity = savedItem.quantity,
+            tags = savedTagNames,
+            photoUrls = savedPhotos.map { it.photoUrl }
+        )
+    }
+
+    @Transactional
+    fun deleteItem(groupId: String, itemId: String) {
+        val itemEntity = itemRepository.findById(itemId)
+            .filter { it.groupId == groupId }
+            .orElseThrow { BizException("존재하지 않거나 권한이 없는 아이템입니다.") }
+
+        // 하위 엔티티들을 모두 명시적으로 삭제 (DB 설정에 cascade 가 없을 것을 대비)
+        itemTagRepository.deleteByItemId(itemId)
+        itemPhotoRepository.deleteByItemId(itemId)
+        
+        // 아이템 엔티티 삭제
+        itemRepository.delete(itemEntity)
     }
 }
