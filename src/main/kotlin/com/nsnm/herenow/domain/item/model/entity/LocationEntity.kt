@@ -22,6 +22,8 @@ class LocationEntity(
     
     var iconName: String? = null,
     
+    var photoUrl: String? = null,
+    
     var parentLocationId: String? = null,
     
     var displayOrder: Int = 0

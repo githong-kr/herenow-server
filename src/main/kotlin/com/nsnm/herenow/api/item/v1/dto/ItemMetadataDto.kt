@@ -21,6 +21,7 @@ data class LocationDto(
     val locationId: String,
     val locationName: String,
     val iconName: String?,
+    val photoUrl: String?,
     val parentLocationId: String?,
     val displayOrder: Int
 )
@@ -28,6 +29,7 @@ data class LocationDto(
 data class CreateLocationRequest(
     val locationName: String,
     val iconName: String? = null,
+    val photoUrl: String? = null,
     val parentLocationId: String? = null,
     val displayOrder: Int = 0
 )

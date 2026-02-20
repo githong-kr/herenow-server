@@ -47,7 +47,7 @@ class ItemMetadataService(
     @Transactional(readOnly = true)
     fun getLocations(groupId: String): List<LocationDto> {
         return locationRepository.findByGroupId(groupId).map {
-            LocationDto(it.locationId, it.locationName, it.iconName, it.parentLocationId, it.displayOrder)
+            LocationDto(it.locationId, it.locationName, it.iconName, it.photoUrl, it.parentLocationId, it.displayOrder)
         }
     }
 
@@ -57,11 +57,12 @@ class ItemMetadataService(
             groupId = groupId,
             locationName = request.locationName,
             iconName = request.iconName,
+            photoUrl = request.photoUrl,
             parentLocationId = request.parentLocationId,
             displayOrder = request.displayOrder
         )
         val saved = locationRepository.save(entity)
-        return LocationDto(saved.locationId, saved.locationName, saved.iconName, saved.parentLocationId, saved.displayOrder)
+        return LocationDto(saved.locationId, saved.locationName, saved.iconName, saved.photoUrl, saved.parentLocationId, saved.displayOrder)
     }
 
     // --- Tag ---
