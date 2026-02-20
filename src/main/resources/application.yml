@@ -65,6 +65,10 @@ spring:
   flyway:
     enabled: false # 개발/테스트 중에는 엔티티 기반 update 선호 시 끔
 
+herenow:
+  jwt:
+    secret: ${TEST_SUPABASE_JWT_SECRET}
+
 ---
 # =============== PROD (Supabase 운영 환경) ===============
 spring:
@@ -83,3 +87,7 @@ spring:
     show-sql: false
   flyway:
     enabled: true
+
+herenow:
+  jwt:
+    secret: ${PROD_SUPABASE_JWT_SECRET}
