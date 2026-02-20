@@ -1,0 +1,85 @@
+spring:
+  application:
+    name: herenow-server
+  profiles:
+    active: local # 기본 활성화 프로필
+
+---
+# =============== LOCAL (로컬 개발 환경) ===============
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    # 로컬 환경 H2 Embedded DB
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  flyway:
+    enabled: false
+
+server:
+  port: 8080
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    groups-order: DESC
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+
+---
+# =============== TEST (Supabase 테스트/스테이징 환경) ===============
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    # Supabase Test 프로젝트 연결 정보 (환경 변수로 주입)
+    url: jdbc:postgresql://${TEST_DB_HOST}:${TEST_DB_PORT:6543}/${TEST_DB_NAME:postgres}?prepareThreshold=0
+    username: ${TEST_DB_USER}
+    password: ${TEST_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  flyway:
+    enabled: false # 개발/테스트 중에는 엔티티 기반 update 선호 시 끔
+
+---
+# =============== PROD (Supabase 운영 환경) ===============
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    # Supabase Prod 프로젝트 연결 정보 (Connection Pooling, 6543 포트 사용 권장)
+    url: jdbc:postgresql://${PROD_DB_HOST}:${PROD_DB_PORT:6543}/${PROD_DB_NAME:postgres}?prepareThreshold=0
+    username: ${PROD_DB_USER}
+    password: ${PROD_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate # 운영은 ddl-auto 사용 절대 금지
+    show-sql: false
+  flyway:
+    enabled: true
