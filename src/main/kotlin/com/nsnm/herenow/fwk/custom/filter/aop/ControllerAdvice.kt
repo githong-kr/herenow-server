@@ -22,15 +22,18 @@ import java.time.ZoneId
 import kotlin.system.measureTimeMillis
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.nsnm.herenow.fwk.custom.service.ApiRegistryService
 import com.nsnm.herenow.lib.model.entity.log.ApiCallLogEntity
 import com.nsnm.herenow.lib.model.repository.log.ApiCallLogRepository
+import org.springframework.web.servlet.HandlerMapping
 
 @Aspect
 @Component
 class ControllerAdvice(
     private val env: Environment,
     private val apiCallLogRepository: ApiCallLogRepository,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val apiRegistryService: ApiRegistryService
 ) {
     private val log = logger()
 
@@ -46,11 +49,23 @@ class ControllerAdvice(
 
 
         initializeContext(env) // CommonArea 설정
+        
+        // --- API 원장 매핑 및 차단 여부 검사 로직 ---
+        val pathPattern = req.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE)?.toString() ?: req.requestURI
+        ca.pathPattern = pathPattern
+        val apiInfo = apiRegistryService.checkAndGetApi(req.method.uppercase(), pathPattern)
+        if (apiInfo != null) {
+            ca.apiKey = "${apiInfo.httpMethodNm}-${apiInfo.urlPath}"
+            ca.apiNm = apiInfo.apiNm
+        } else {
+            ca.apiKey = "${req.method.uppercase()}-$pathPattern"
+            ca.apiNm = "Unknown API"
+        }
+
         setMDC()
 
         // 권한 체크는 스프링 시큐리티 혹은 추후에 셋업
         
-
 
         // 실제 메서드 실행
         log.info(">>>>>  controller start [$signatureName() from [${req.remoteAddr}] by ${req.method} ${req.requestURI}[${ca.pathPattern}]")
@@ -139,7 +154,7 @@ class ControllerAdvice(
         val apiCallLog = ApiCallLogEntity(
             reqGuid = ca.guid,
             apiKey = ca.apiKey,
-            serviceNm = req.requestURI, // URI를 서비스명 필드로 임시 매핑
+            serviceNm = ca.apiNm, // API 원장의 요약된 이름 사용
             reqUrl = req.requestURL.toString(), 
             clientIp = ca.remoteIp,
             reqParam = req.queryString,

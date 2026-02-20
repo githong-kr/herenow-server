@@ -65,9 +65,12 @@ spring:
   flyway:
     enabled: false # 개발/테스트 중에는 엔티티 기반 update 선호 시 끔
 
-herenow:
-  jwt:
-    secret: ${TEST_SUPABASE_JWT_SECRET}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Supabase가 제공하는 공개키(JWKS) 엔드포인트 URL
+          jwk-set-uri: https://${TEST_SUPABASE_PROJECT_REF}.supabase.co/auth/v1/.well-known/jwks.json
 
 ---
 # =============== PROD (Supabase 운영 환경) ===============
@@ -88,6 +91,9 @@ spring:
   flyway:
     enabled: true
 
-herenow:
-  jwt:
-    secret: ${PROD_SUPABASE_JWT_SECRET}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Supabase가 제공하는 공개키(JWKS) 엔드포인트 URL
+          jwk-set-uri: https://${PROD_SUPABASE_PROJECT_REF}.supabase.co/auth/v1/.well-known/jwks.json

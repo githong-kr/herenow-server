@@ -24,12 +24,10 @@ class ApiCallLogEntity(
     @Column(name = "client_ip", length = 50)
     var clientIp: String? = null,
     
-    @Lob
-    @Column(name = "req_param")
+    @Column(name = "req_param", columnDefinition = "TEXT")
     var reqParam: String? = null,
     
-    @Lob
-    @Column(name = "req_body")
+    @Column(name = "req_body", columnDefinition = "TEXT")
     var reqBody: String? = null,
     
     @Column(name = "elapsed_ms")
@@ -41,7 +39,6 @@ class ApiCallLogEntity(
     @Column(name = "err_msg", length = 1000)
     var errMsg: String? = null,
     
-    @Lob
-    @Column(name = "err_stack")
+    @Column(name = "err_stack", columnDefinition = "TEXT")
     var errStack: String? = null
 ) : BaseEntity()

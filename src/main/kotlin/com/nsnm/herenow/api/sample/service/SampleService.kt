@@ -19,7 +19,7 @@ class SampleService(
         }
 
         val entity = sampleRepository.findById(id)
-            .orElseThrow { BizException("NEW3001", listOf("Sample Data")) }
+            .orElseThrow { BizException("HNW3001", listOf(id.toString())) }
         
         return SampleResponse(
             id = entity.id!!,

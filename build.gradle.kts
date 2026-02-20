@@ -32,11 +32,10 @@ dependencies {
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
+	implementation("me.paulschwarz:spring-dotenv:4.0.0")
     
-    // JWT Parsing (Supabase Token Verification)
-    implementation("io.jsonwebtoken:jjwt-api:0.12.3")
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3")
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.3")
+    // JWT Parsing & Verification (OAuth2 Resource Server via JWKS)
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 
 	runtimeOnly("org.postgresql:postgresql")
 	runtimeOnly("com.h2database:h2")

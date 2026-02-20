@@ -18,9 +18,10 @@ data class ComArea(
     var isLogin: Boolean = false,                       // 로그인 여부
     var errMsg: String? = null,                         // 에러 메시지
     var err: Exception? = null,                         // Exception
+    var apiNm: String? = null                           // API Name
 ) : Serializable {
 
     override fun toString(): String {
-        return "ComArea(guid='$guid', method='$method', path='$path', pathPattern='$pathPattern', apiKey='$apiKey', statCd='$statCd', startDt=$startDt, endDt=$endDt, elapsed=$elapsed, remoteIp='$remoteIp', isLogin=$isLogin, errMsg=$errMsg, err=$err)"
+        return "ComArea(guid='$guid', method='$method', path='$path', pathPattern='$pathPattern', apiKey='$apiKey', statCd='$statCd', startDt=$startDt, endDt=$endDt, elapsed=$elapsed, remoteIp='$remoteIp', isLogin=$isLogin, errMsg=$errMsg, err=$err, apiNm=$apiNm)"
     }
 }
