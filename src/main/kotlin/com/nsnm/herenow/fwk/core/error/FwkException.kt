@@ -12,7 +12,7 @@ open class FwkException(
     e: Throwable? = null,
     override val msgArgs: List<String>? = null
 ) : BaseException(httpStatus, msgCd, e) {
-    constructor(e: Throwable) : this(HttpStatus.INTERNAL_SERVER_ERROR, "NEW9999", e)
+    constructor(e: Throwable) : this(HttpStatus.INTERNAL_SERVER_ERROR, "HNW9999", e)
     constructor(e: Throwable, msgCd: String) : this(HttpStatus.INTERNAL_SERVER_ERROR, msgCd, e)
     constructor(e: Throwable, msgCd: String, msgArgs: List<String>?) : this(HttpStatus.INTERNAL_SERVER_ERROR, msgCd, e, msgArgs)
     constructor(msgCd: String) : this(HttpStatus.INTERNAL_SERVER_ERROR, msgCd)

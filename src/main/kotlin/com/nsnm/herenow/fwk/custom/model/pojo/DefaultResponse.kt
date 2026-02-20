@@ -19,29 +19,28 @@ class DefaultResponse {
     }
 
     data class Response(
-        val tmst: Timestamp = DateUtils.currentTmst,
-        val timeStamp: String = DateUtils.currentTimestampString,
         var guid: String = "",
         var status: String = "",
-        var statusName: String = "",
-        var path: String = "",
-        var api: Long? = 0,
-        var isError: Boolean = false,
+        var message: String? = null,
         var data: Any? = null,
         var errorInfo: DefaultExceptionResponse? = null,
     ) {
         constructor(input: Any?) : this() {
-            if (input is DefaultExceptionResponse)
+            if (input is DefaultExceptionResponse) {
                 this.errorInfo = input
-            else
+                this.message = input.message
+            } else {
                 this.data = input
+            }
         }
 
         constructor(input: Any?, context: CustomContext) : this() {
-            if (input is DefaultExceptionResponse)
+            if (input is DefaultExceptionResponse) {
                 this.errorInfo = input
-            else
+                this.message = input.message
+            } else {
                 this.data = input
+            }
 
             this.fillCommon(context)
         }
@@ -50,20 +49,11 @@ class DefaultResponse {
             val ca = context.com
             this.guid = ca.guid
             this.status = ca.statCd
-            this.statusName = HttpStatus.valueOf(ca.statCd.toInt()).name
-            this.path = ca.path
-            this.api = ca.apiId
-            this.isError = this.errorInfo != null
-
-            if (this.status == "404")
-                this.isError = true
-
             return this
         }
 
         override fun toString(): String {
-            return "Response(tmst=$tmst, timeStamp='$timeStamp', guid='$guid', status='$status', statusName='$statusName', path='$path', api='$api', isError=$isError, data=$data, errorInfo=$errorInfo)"
+            return "Response(guid='$guid', status='$status', message=$message, data=$data, errorInfo=$errorInfo)"
         }
-
     }
 }

@@ -16,7 +16,7 @@ class EntityListener {
     fun prePersist(entity: BaseEntity) {
         val currentTimestamp = DateUtils.now
         val context = CustomContextHolder.getContext()
-        updateEntityFields(entity, context.com.apiId, context.com.guid, currentTimestamp, isCreate = true)
+        updateEntityFields(entity, null, context.com.guid, currentTimestamp, isCreate = true)
         log.info("PrePersist called for entity: $entity")
     }
 
@@ -24,7 +24,7 @@ class EntityListener {
     fun preUpdate(entity: BaseEntity) {
         val currentTimestamp = DateUtils.now
         val context = CustomContextHolder.getContext()
-        updateEntityFields(entity, context.com.apiId, context.com.guid, currentTimestamp, isCreate = false)
+        updateEntityFields(entity, null, context.com.guid, currentTimestamp, isCreate = false)
         log.info("PreUpdate called for entity: $entity")
     }
 

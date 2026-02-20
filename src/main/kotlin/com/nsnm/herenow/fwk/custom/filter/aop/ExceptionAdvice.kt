@@ -4,7 +4,6 @@ import com.nsnm.herenow.fwk.core.base.BaseException
 import com.nsnm.herenow.fwk.core.context.CustomContextHolder
 import com.nsnm.herenow.fwk.core.error.BizException
 import com.nsnm.herenow.fwk.core.error.UnauthorizedException
-import com.nsnm.herenow.fwk.custom.model.pojo.DefaultException
 import com.nsnm.herenow.fwk.custom.model.pojo.DefaultExceptionResponse
 import com.nsnm.herenow.lib.ext.logger
 import com.nsnm.herenow.lib.model.enum.ErrorCode
@@ -57,34 +56,10 @@ class ExceptionAdvice {
             else
                 response.message = exception.message
 
-            // 최초 에러정보 loop in cause
+            // 최초 에러정보 추적
             response.classType = exception.javaClass.simpleName
-            var cause: Throwable = exception
-            while (cause.cause != null) {
-                if (cause.cause is BaseException) {
-                    val innerCause = cause.cause as BaseException
-                    val msgCtn = ErrorCode.getMessage(innerCause)
-                    response.stack.add(DefaultException(innerCause.msgCd, msgCtn))
-
-                    // 에러 유형은 최초 발생한 에러로 재지정
-                    response.type = when (exception) {
-                        is UnauthorizedException -> "B"
-                        is BizException -> "B"
-                        is BaseException -> "D"
-//                    is BadSqlGrammarException -> "D"
-                        else -> "S"
-                    }
-
-                } else {
-                    response.stack.add(
-                        DefaultException(
-                            cause.cause!!.localizedMessage,
-                            cause.cause!!.message.toString()
-                        )
-                    ) // TODO 230215 | need check
-                }
-                cause = cause.cause!!
-            }
+            
+            val cause: Throwable = exception
 
             // 에러 라인 정보
             response.serviceName = cause.stackTrace[0].className

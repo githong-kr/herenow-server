@@ -41,7 +41,7 @@ class GuidUtils(
         sb.append(DateUtils.currentDt)      // 일자(8)
         sb.append(DateUtils.currentHms)     // 시분초(6)
         sb.append("001")                    // 그룹사코드(3)
-        sb.append("NEW")                    // 채널코드(3)
+        sb.append("HNW")                    // 채널코드(3)
         sb.append(getServerId())            // 채널ID(7)
         sb.append(nextVal())                // 일련번호(6)
         sb.append("001")                    // hop(3)

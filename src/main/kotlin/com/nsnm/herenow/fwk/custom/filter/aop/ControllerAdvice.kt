@@ -73,16 +73,12 @@ class ControllerAdvice(
         val ca = context.com
         if (bClear) {
             MDC.put("guid", "")
-            MDC.put("apiId", "")
             MDC.put("apiKey", "")
-            MDC.put("apiFileName", "")
             MDC.put("userNm", "")
         } else {
             MDC.put("guid", ca.guid)
-            MDC.put("apiId", (ca.apiId ?: "").toString())
             MDC.put("apiKey", ca.apiKey)
-            MDC.put("apiFileName", "${((ca.apiId ?: "").toString())}.log.${DateUtils.currentDateTimeFormat("yyMMdd")}")
-            MDC.put("userNm", context.user?.userNm ?: ca.hostNm)
+            MDC.put("userNm", context.user?.userNm ?: "")
         }
     }
 

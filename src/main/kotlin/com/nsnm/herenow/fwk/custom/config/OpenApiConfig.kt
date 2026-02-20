@@ -57,8 +57,8 @@ class OpenApiConfig(
 
         val openApi = OpenAPI().info(
             Info()
-                .title("NewLife")
-                .description("새로운 삶을 위한 시스템")
+                .title("HereNow")
+                .description("물건 관리 시스템")
         )
             .addServersItem(Server().url(url).description(description))
             .components(
@@ -66,7 +66,7 @@ class OpenApiConfig(
                     .addSchemas(
                         "DefaultExceptionResponse",
                         Schema<Any>()
-                            .addProperty("messageCode", StringSchema().example("NEW9999"))
+                            .addProperty("messageCode", StringSchema().example("HNW9999"))
                             .addProperty("message", StringSchema().example("Internal Server Error"))
                             .addProperty("type", StringSchema().example("S"))
                             .addProperty("classType", StringSchema().example("com.example.Exception"))
@@ -78,10 +78,10 @@ class OpenApiConfig(
                                     )
                             )
                     )
-                    .addHeaders("x-newlife-api", Header().description("API ID").schema(StringSchema()))
-                    .addHeaders("x-newlife-guid", Header().description("guid").schema(StringSchema()))
+                    .addHeaders("x-herenow-api", Header().description("API ID").schema(StringSchema()))
+                    .addHeaders("x-herenow-guid", Header().description("guid").schema(StringSchema()))
                     .addHeaders(
-                        "x-newlife-crypto", Header().description("Encrypted Y/N").schema(StringSchema())
+                        "x-herenow-crypto", Header().description("Encrypted Y/N").schema(StringSchema())
                     )
             )
         return openApi

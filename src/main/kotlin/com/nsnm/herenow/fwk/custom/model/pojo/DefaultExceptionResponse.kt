@@ -7,12 +7,6 @@ data class DefaultExceptionResponse(
     var classType: String? = null,
     var serviceName: String? = null,
     var lineNumber: Int? = null,
-    var methodName: String? = null,
-    var stack: ArrayList<DefaultException> = arrayListOf()
-)
-
-data class DefaultException(
-    var messageCode: String? = null,
-    var message: String? = null
+    var methodName: String? = null
 )
 

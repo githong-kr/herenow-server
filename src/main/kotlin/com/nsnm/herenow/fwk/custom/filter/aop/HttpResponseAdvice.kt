@@ -44,7 +44,6 @@ class HttpResponseAdvice : ResponseBodyAdvice<Any> {
 
         response.headers.add("X-GUID", context.com.guid)
         response.headers.add("X-elapsed", context.com.elapsed.toString())
-        response.headers.add("X-api", context.com.apiId.toString())
 
         returnValue = if (mediaType.isCompatibleWith(MediaType.APPLICATION_JSON) ||
             mediaType.isCompatibleWith(MediaType("application", "*+json"))
