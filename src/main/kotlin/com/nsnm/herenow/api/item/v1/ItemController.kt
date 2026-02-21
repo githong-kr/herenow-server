@@ -13,13 +13,14 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import com.nsnm.herenow.fwk.core.base.BaseController
 
 @Tag(name = "Items", description = "실제 아이템 재고 증감 및 관리 API")
 @RestController
 @RequestMapping("/api/v1/groups/{groupId}/items")
 class ItemController(
     private val itemService: ItemService
-) {
+) : BaseController() {
 
     @Operation(summary = "아이템 생성", description = "아이템 기본 정보, 사진, 태그를 한 번에 등록합니다.")
     @PostMapping

@@ -18,13 +18,14 @@ import com.nsnm.herenow.domain.item.repository.TagRepository
 import com.nsnm.herenow.fwk.core.error.BizException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import com.nsnm.herenow.fwk.core.base.BaseService
 
 @Service
 class ItemMetadataService(
     private val categoryRepository: CategoryRepository,
     private val locationRepository: LocationRepository,
     private val tagRepository: TagRepository
-) {
+) : BaseService() {
 
     // --- Category ---
     @Transactional(readOnly = true)

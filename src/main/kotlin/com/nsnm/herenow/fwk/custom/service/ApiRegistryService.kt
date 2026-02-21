@@ -7,17 +7,15 @@ import com.nsnm.herenow.lib.model.repository.log.ApiRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.concurrent.ConcurrentHashMap
+import com.nsnm.herenow.fwk.core.base.BaseService
 
 @Service
 class ApiRegistryService(
     private val apiRepository: ApiRepository
-) {
-    private val log = logger()
-    
-    // API 정보를 메모리에 들고 있기 위한 캐시 (Key: "HTTPMETHOD-URLPATH")
-    private val apiCache = ConcurrentHashMap<String, ApiEntity>()
+) : BaseService() {
 
-    /**
+    // API 정보를 메모리에 들고 있기 위한 캐시 (Key: "HTTPMETHOD-URLPATH")
+    private val apiCache = ConcurrentHashMap<String, ApiEntity>()    /**
      * 서버 기동 완료 시점에 전체 원장을 메모리에 적재
      */
     @Transactional(readOnly = true)

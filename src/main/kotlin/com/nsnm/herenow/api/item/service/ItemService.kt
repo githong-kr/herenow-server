@@ -17,6 +17,7 @@ import com.nsnm.herenow.fwk.core.error.BizException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
+import com.nsnm.herenow.fwk.core.base.BaseService
 
 @Service
 class ItemService(
@@ -26,7 +27,7 @@ class ItemService(
     private val tagRepository: TagRepository,
     private val itemTagRepository: ItemTagRepository,
     private val itemPhotoRepository: ItemPhotoRepository
-) {
+) : BaseService() {
 
     @Transactional
     fun createItem(groupId: String, request: CreateItemRequest): ItemResponse {

@@ -11,13 +11,14 @@ import com.nsnm.herenow.domain.user.model.entity.ProfileEntity
 import com.nsnm.herenow.domain.user.repository.ProfileRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import com.nsnm.herenow.fwk.core.base.BaseService
 
 @Service
 class UserService(
     private val profileRepository: ProfileRepository,
     private val userGroupRepository: UserGroupRepository,
     private val userGroupMemberRepository: UserGroupMemberRepository
-) {
+) : BaseService() {
 
     /**
      * 회원 가입 및 초기 그룹 생성 (단일 트랜잭션)

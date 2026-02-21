@@ -15,13 +15,14 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import com.nsnm.herenow.fwk.core.base.BaseController
 
 @Tag(name = "User Groups", description = "사용자 그룹 및 권한 관리 API")
 @RestController
 @RequestMapping("/api/v1/groups")
 class UserGroupController(
     private val userGroupService: UserGroupService
-) {
+) : BaseController() {
 
     @Operation(summary = "해당 그룹 기본 정보 조회", description = "그룹의 소유주와 현재 설정된 초대 코드 정보를 조회합니다.")
     @GetMapping("/{groupId}")

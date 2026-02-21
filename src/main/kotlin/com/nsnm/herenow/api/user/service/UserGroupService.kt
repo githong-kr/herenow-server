@@ -14,13 +14,14 @@ import com.nsnm.herenow.fwk.core.error.BizException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
+import com.nsnm.herenow.fwk.core.base.BaseService
 
 @Service
 class UserGroupService(
     private val userGroupRepository: UserGroupRepository,
     private val userGroupMemberRepository: UserGroupMemberRepository,
     private val groupJoinRequestRepository: GroupJoinRequestRepository
-) {
+) : BaseService() {
 
     @Transactional(readOnly = true)
     fun getGroupInfo(groupId: String): UserGroupDto {

@@ -20,13 +20,14 @@ import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import com.nsnm.herenow.fwk.core.base.BaseController
 
 @Tag(name = "Item Metadata", description = "아이템 카테고리, 장소, 태그 관리 API")
 @RestController
 @RequestMapping("/api/v1/groups/{groupId}")
 class ItemMetadataController(
     private val itemMetadataService: ItemMetadataService
-) {
+) : BaseController() {
 
     // --- Category ---
     @Operation(summary = "카테고리 목록 조회", description = "특정 그룹의 모든 카테고리를 조회합니다.")

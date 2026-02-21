@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import com.nsnm.herenow.fwk.core.base.BaseService
 
 @Service
 @Transactional(readOnly = true)
@@ -23,7 +24,7 @@ class HomeService(
     private val itemRepository: ItemRepository,
     private val categoryRepository: CategoryRepository,
     private val locationRepository: LocationRepository
-) {
+) : BaseService() {
 
     fun getHomeDashboardData(uid: String): HomeResponse {
         // 1. 프로필 조회 및 대표 그룹 식별 (대표 그룹이 없으면 기본 0 반환)
