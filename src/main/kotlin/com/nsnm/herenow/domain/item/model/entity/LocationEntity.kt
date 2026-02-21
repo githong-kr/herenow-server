@@ -8,7 +8,7 @@ import java.util.UUID
 
 /**
  * 아이템의 보관 장소
- * 트리 구조 (parentLocationId) 를 가질 수 있음
+ * 계층 구조 대신 단순 UI 그룹핑을 위한 (locationGroup) 필드를 가짐
  */
 @Entity
 @Table(name = "locations")
@@ -24,7 +24,7 @@ class LocationEntity(
     
     var photoUrl: String? = null,
     
-    var parentLocationId: String? = null,
+    var locationGroup: String? = null,
     
     var displayOrder: Int = 0
 ) : BaseEntity()

@@ -30,7 +30,7 @@ class ItemMetadataService(
     @Transactional(readOnly = true)
     fun getCategories(groupId: String): List<CategoryDto> {
         return categoryRepository.findByGroupId(groupId).map {
-            CategoryDto(it.categoryId, it.categoryName, it.iconName, it.parentCategoryId, it.displayOrder)
+            CategoryDto(it.categoryId, it.categoryName, it.iconName, it.categoryGroup, it.displayOrder)
         }
     }
 
@@ -40,11 +40,11 @@ class ItemMetadataService(
             groupId = groupId,
             categoryName = request.categoryName,
             iconName = request.iconName,
-            parentCategoryId = request.parentCategoryId,
+            categoryGroup = request.categoryGroup,
             displayOrder = request.displayOrder
         )
         val saved = categoryRepository.save(entity)
-        return CategoryDto(saved.categoryId, saved.categoryName, saved.iconName, saved.parentCategoryId, saved.displayOrder)
+        return CategoryDto(saved.categoryId, saved.categoryName, saved.iconName, saved.categoryGroup, saved.displayOrder)
     }
 
     @Transactional
@@ -55,11 +55,11 @@ class ItemMetadataService(
             
         entity.categoryName = request.categoryName
         entity.iconName = request.iconName
-        entity.parentCategoryId = request.parentCategoryId
+        entity.categoryGroup = request.categoryGroup
         entity.displayOrder = request.displayOrder
         
         val saved = categoryRepository.save(entity)
-        return CategoryDto(saved.categoryId, saved.categoryName, saved.iconName, saved.parentCategoryId, saved.displayOrder)
+        return CategoryDto(saved.categoryId, saved.categoryName, saved.iconName, saved.categoryGroup, saved.displayOrder)
     }
 
     @Transactional
@@ -76,7 +76,7 @@ class ItemMetadataService(
     @Transactional(readOnly = true)
     fun getLocations(groupId: String): List<LocationDto> {
         return locationRepository.findByGroupId(groupId).map {
-            LocationDto(it.locationId, it.locationName, it.iconName, it.photoUrl, it.parentLocationId, it.displayOrder)
+            LocationDto(it.locationId, it.locationName, it.iconName, it.photoUrl, it.locationGroup, it.displayOrder)
         }
     }
 
@@ -87,11 +87,11 @@ class ItemMetadataService(
             locationName = request.locationName,
             iconName = request.iconName,
             photoUrl = request.photoUrl,
-            parentLocationId = request.parentLocationId,
+            locationGroup = request.locationGroup,
             displayOrder = request.displayOrder
         )
         val saved = locationRepository.save(entity)
-        return LocationDto(saved.locationId, saved.locationName, saved.iconName, saved.photoUrl, saved.parentLocationId, saved.displayOrder)
+        return LocationDto(saved.locationId, saved.locationName, saved.iconName, saved.photoUrl, saved.locationGroup, saved.displayOrder)
     }
 
     @Transactional
@@ -103,11 +103,11 @@ class ItemMetadataService(
         entity.locationName = request.locationName
         entity.iconName = request.iconName
         entity.photoUrl = request.photoUrl
-        entity.parentLocationId = request.parentLocationId
+        entity.locationGroup = request.locationGroup
         entity.displayOrder = request.displayOrder
         
         val saved = locationRepository.save(entity)
-        return LocationDto(saved.locationId, saved.locationName, saved.iconName, saved.photoUrl, saved.parentLocationId, saved.displayOrder)
+        return LocationDto(saved.locationId, saved.locationName, saved.iconName, saved.photoUrl, saved.locationGroup, saved.displayOrder)
     }
 
     @Transactional

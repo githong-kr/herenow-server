@@ -8,7 +8,7 @@ import java.util.UUID
 
 /**
  * 아이템의 품목 카테고리
- * 트리 구조 (parentCategoryId) 를 가질 수 있음
+ * 계층 구조 대신 단순 UI 그룹핑을 위한 (categoryGroup) 필드를 가짐
  */
 @Entity
 @Table(name = "categories")
@@ -22,7 +22,7 @@ class CategoryEntity(
     
     var iconName: String? = null,
     
-    var parentCategoryId: String? = null,
+    var categoryGroup: String? = null,
     
     var displayOrder: Int = 0
 ) : BaseEntity()

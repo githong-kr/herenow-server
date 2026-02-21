@@ -5,21 +5,21 @@ data class CategoryDto(
     val categoryId: String,
     val categoryName: String,
     val iconName: String?,
-    val parentCategoryId: String?,
+    val categoryGroup: String?,
     val displayOrder: Int
 )
 
 data class CreateCategoryRequest(
     val categoryName: String,
     val iconName: String? = null,
-    val parentCategoryId: String? = null,
+    val categoryGroup: String? = null,
     val displayOrder: Int = 0
 )
 
 data class UpdateCategoryRequest(
     val categoryName: String,
     val iconName: String? = null,
-    val parentCategoryId: String? = null,
+    val categoryGroup: String? = null,
     val displayOrder: Int = 0
 )
 
@@ -29,7 +29,7 @@ data class LocationDto(
     val locationName: String,
     val iconName: String?,
     val photoUrl: String?,
-    val parentLocationId: String?,
+    val locationGroup: String?,
     val displayOrder: Int
 )
 
@@ -37,7 +37,7 @@ data class CreateLocationRequest(
     val locationName: String,
     val iconName: String? = null,
     val photoUrl: String? = null,
-    val parentLocationId: String? = null,
+    val locationGroup: String? = null,
     val displayOrder: Int = 0
 )
 
@@ -45,7 +45,7 @@ data class UpdateLocationRequest(
     val locationName: String,
     val iconName: String? = null,
     val photoUrl: String? = null,
-    val parentLocationId: String? = null,
+    val locationGroup: String? = null,
     val displayOrder: Int = 0
 )
 
