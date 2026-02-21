@@ -2,6 +2,7 @@ package com.nsnm.herenow.api.home.service
 
 import com.nsnm.herenow.api.home.v1.dto.HomeItemDto
 import com.nsnm.herenow.api.home.v1.dto.HomeResponse
+import com.nsnm.herenow.domain.group.repository.UserGroupRepository
 import com.nsnm.herenow.domain.item.model.entity.CategoryEntity
 import com.nsnm.herenow.domain.item.model.entity.ItemEntity
 import com.nsnm.herenow.domain.item.model.entity.LocationEntity
@@ -18,6 +19,7 @@ import java.time.temporal.ChronoUnit
 @Transactional(readOnly = true)
 class HomeService(
     private val profileRepository: ProfileRepository,
+    private val userGroupRepository: UserGroupRepository,
     private val itemRepository: ItemRepository,
     private val categoryRepository: CategoryRepository,
     private val locationRepository: LocationRepository
@@ -29,6 +31,9 @@ class HomeService(
             ?: return createEmptyResponse()
         
         val groupId = profile.representativeGroupId ?: return createEmptyResponse()
+        
+        // 1-1. 대표 그룹 그룹명 조회
+        val groupName = userGroupRepository.findById(groupId).orElse(null)?.groupName
 
         // 2. 그룹 내 전체 데이터 조회
         val items = itemRepository.findByGroupId(groupId)
@@ -77,7 +82,8 @@ class HomeService(
             imminentItems = imminentItems,
             recentItems = recentItems,
             locationsSummary = locationsSummary,
-            categoriesSummary = categoriesSummary
+            categoriesSummary = categoriesSummary,
+            groupName = groupName
         )
     }
 

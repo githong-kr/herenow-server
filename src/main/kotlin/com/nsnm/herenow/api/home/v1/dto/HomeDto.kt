@@ -22,7 +22,10 @@ data class HomeResponse(
     val locationsSummary: Map<String, List<String>>,
     
     @Schema(description = "카테고리별 모아보기 요약 데이터 (Key: categoryGroup, Value: categoryName 리스트)")
-    val categoriesSummary: Map<String, List<String>>
+    val categoriesSummary: Map<String, List<String>>,
+
+    @Schema(description = "현재 조회된 대표 그룹명")
+    val groupName: String? = null
 )
 
 data class HomeItemDto(
