@@ -29,8 +29,19 @@ class SecurityConfig(
             .authorizeHttpRequests {
 
                 if (isLocal) {
-                    // [로컬 환경] 모든 API 허가 (테스트 편리성)
+                    // [로컬 환경] 모든 API 허가 (테스트 편리성) 및 더미 사용자(dummy-uid-1234) 자동 세팅
                     it.anyRequest().permitAll()
+                    http.addFilterBefore(object : org.springframework.web.filter.OncePerRequestFilter() {
+                        override fun doFilterInternal(
+                            request: jakarta.servlet.http.HttpServletRequest,
+                            response: jakarta.servlet.http.HttpServletResponse,
+                            filterChain: jakarta.servlet.FilterChain
+                        ) {
+                            val token = org.springframework.security.authentication.UsernamePasswordAuthenticationToken("dummy-uid-1234", null, listOf())
+                            org.springframework.security.core.context.SecurityContextHolder.getContext().authentication = token
+                            filterChain.doFilter(request, response)
+                        }
+                    }, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter::class.java)
                 } else {
                     // [운영/테스트 환경] 기본 정적 및 Swagger 페이지 허용, 나머지는 인증
                     it.requestMatchers("/", "/api/v1/sample/**", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**")
