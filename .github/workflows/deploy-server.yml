@@ -47,7 +47,10 @@ jobs:
               echo "Deploying Production Environment..."
               git checkout d/prod
               git pull origin d/prod
-              docker-compose up -d --build herenow-prod-api
+              # 1. 빌드 전용 엔진으로 (캐시 없이, 백그라운드 없이) 순수 빌드만 진행 (Keychain 회피)
+              docker-compose build --no-cache herenow-prod-api
+              # 2. 빌드된 이미지를 띄움
+              docker-compose up -d herenow-prod-api
               
               # Health Check (8002 포트 응답 대기, 최대 60초)
               echo "Waiting for prod server to start..."
@@ -71,7 +74,10 @@ jobs:
               echo "Deploying Test/Dev Environment..."
               git checkout d/test
               git pull origin d/test
-              docker-compose up -d --build herenow-dev-api
+              # 1. 빌드 전용 엔진으로 (캐시 없이, 백그라운드 없이) 순수 빌드만 진행 (Keychain 회피)
+              docker-compose build --no-cache herenow-dev-api
+              # 2. 빌드된 이미지를 띄움
+              docker-compose up -d herenow-dev-api
               
               # Health Check (8001 포트 응답 대기, 최대 60초)
               echo "Waiting for test server to start..."
