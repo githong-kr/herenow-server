@@ -24,9 +24,11 @@ jobs:
             export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin:/Users/${{ secrets.SERVER_USER }}/.docker/bin
             export DOCKER_HOST="unix:///Users/${{ secrets.SERVER_USER }}/.docker/run/docker.sock"
             
-            # [HOTFIX 2] SSH 환경 빌드 시 데스크탑 keychain 권한 에러 방지를 위해 원본 config 파일 임시 백업 및 격리
+            # [HOTFIX 2] SSH 환경 빌드 시 데스크탑 keychain 로직 강제 진입 방지를 위해 원본 config 파일 백업 및 무력화
             DOCKER_CONF="/Users/${{ secrets.SERVER_USER }}/.docker/config.json"
             if [ -f "$DOCKER_CONF" ]; then mv "$DOCKER_CONF" "${DOCKER_CONF}.bak"; fi
+            # Docker Desktop의 기본값(desktop credential helper) 발동을 강제 차단합니다.
+            echo '{"credsStore":""}' > "$DOCKER_CONF"
             
             # 서버 내부의 프로젝트 Git 경로로 이동
             cd /Users/${{ secrets.SERVER_USER }}/Documents/release/herenow-server
@@ -84,7 +86,8 @@ jobs:
               done
             fi
             
-            # [HOTFIX 2 복구] 정상 빌드 종료 후 백업한 config.json 원복
+            # [HOTFIX 2 복구] 정상 빌드 종료 후 무력화 파일 삭제 및 백업한 config.json 원복
+            rm -f "$DOCKER_CONF"
             if [ -f "${DOCKER_CONF}.bak" ]; then mv "${DOCKER_CONF}.bak" "$DOCKER_CONF"; fi
             
             # 빌드 이후 사용되지 않는 댕글링 이미지 자동 정리
