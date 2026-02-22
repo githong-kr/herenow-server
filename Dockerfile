@@ -1,5 +1,5 @@
 # 1. 빌드 스테이지
-FROM gradle:8.5.0-jdk21-alpine AS builder
+FROM gradle:8.5.0-jdk21 AS builder
 
 WORKDIR /build
 
