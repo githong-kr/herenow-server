@@ -15,6 +15,7 @@ import com.nsnm.herenow.domain.item.model.entity.TagEntity
 import com.nsnm.herenow.domain.item.repository.CategoryRepository
 import com.nsnm.herenow.domain.item.repository.LocationRepository
 import com.nsnm.herenow.domain.item.repository.TagRepository
+import com.nsnm.herenow.domain.item.repository.ItemRepository
 import com.nsnm.herenow.fwk.core.error.BizException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,7 +25,8 @@ import com.nsnm.herenow.fwk.core.base.BaseService
 class ItemMetadataService(
     private val categoryRepository: CategoryRepository,
     private val locationRepository: LocationRepository,
-    private val tagRepository: TagRepository
+    private val tagRepository: TagRepository,
+    private val itemRepository: ItemRepository
 ) : BaseService() {
 
     // --- Category ---
@@ -69,7 +71,9 @@ class ItemMetadataService(
             .filter { it.groupId == groupId }
             .orElseThrow { BizException("존재하지 않거나 권한이 없는 카테고리입니다.") }
         
-        // TODO: 만약 카테고리에 속한 아이템이 있다면 삭제 거부 로직 추가 가능
+        if (itemRepository.existsByCategoryId(categoryId)) {
+            throw BizException("해당 카테고리를 사용 중인 아이템이 있어 삭제할 수 없습니다.")
+        }
         categoryRepository.delete(entity)
     }
 
@@ -117,7 +121,9 @@ class ItemMetadataService(
             .filter { it.groupId == groupId }
             .orElseThrow { BizException("존재하지 않거나 권한이 없는 보관장소입니다.") }
             
-        // TODO: 만약 위치에 속한 아이템이나 하위 위치가 있다면 삭제 거부 로직 추가 가능
+        if (itemRepository.existsByLocationId(locationId)) {
+            throw BizException("해당 장소를 사용 중인 아이템이 있어 삭제할 수 없습니다.")
+        }
         locationRepository.delete(entity)
     }
 

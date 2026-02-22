@@ -64,8 +64,7 @@ class ControllerAdvice(
 
         setMDC()
 
-        // 권한 체크는 스프링 시큐리티 혹은 추후에 셋업
-        
+
 
         // 실제 메서드 실행
         log.info(">>>>>  controller start [$signatureName() from [${req.remoteAddr}] by ${req.method} ${req.requestURI}[${ca.pathPattern}]")

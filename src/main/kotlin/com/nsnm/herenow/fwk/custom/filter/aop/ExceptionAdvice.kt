@@ -29,8 +29,10 @@ class ExceptionAdvice {
         when (exception) {
             is BaseException -> status = exception.httpStatus
             is NoHandlerFoundException -> status = HttpStatus.NOT_FOUND
-            else -> log.error(exception.message, exception) // TODO need added other logger
-        }
+            else -> {
+                log.error("[UNHANDLED_EXCEPTION] reqGuid: ${context.com.guid}, message: ${exception.message}", exception) 
+                // 외부 알림(Slack/Discord Webhook 등) 연동 포인트
+            }
 
         if (status === HttpStatus.NOT_FOUND) {
             context.com.statCd = status.value().toString()

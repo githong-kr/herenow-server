@@ -34,6 +34,8 @@ interface ItemTagRepository : JpaRepository<ItemTagEntity, String> {
 @Repository
 interface ItemRepository : JpaRepository<ItemEntity, String>, JpaSpecificationExecutor<ItemEntity> {
     fun findByGroupId(groupId: String): List<ItemEntity>
+    fun existsByCategoryId(categoryId: String): Boolean
+    fun existsByLocationId(locationId: String): Boolean
 }
 
 @Repository
