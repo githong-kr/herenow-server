@@ -22,6 +22,7 @@ jobs:
           script: |
             # [HOTFIX] macOS SSH 접속 시 docker 등 프로그램 명령어 경로(PATH) 인식 안 되는 문제 우회
             export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin:/Users/${{ secrets.SERVER_USER }}/.docker/bin
+            export DOCKER_HOST="unix:///Users/${{ secrets.SERVER_USER }}/.docker/run/docker.sock"
             
             # 서버 내부의 프로젝트 Git 경로로 이동 (환경에 맞게 변경 필요)
             cd /Users/${{ secrets.SERVER_USER }}/Documents/release/herenow-server
