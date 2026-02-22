@@ -43,8 +43,8 @@ class SecurityConfig(
                         }
                     }, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter::class.java)
                 } else {
-                    // [운영/테스트 환경] 기본 정적 및 Swagger 페이지 허용, 나머지는 인증
-                    it.requestMatchers("/", "/api/v1/sample/**", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**")
+                    // [운영/테스트 환경] 기본 정적 및 Swagger 페이지, 헬스체크 허용, 나머지는 인증
+                    it.requestMatchers("/", "/actuator/health", "/api/v1/sample/**", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**", "/v3/api-docs.yaml")
                         .permitAll()
                         .anyRequest().authenticated()
                 }
