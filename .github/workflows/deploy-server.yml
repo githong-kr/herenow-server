@@ -1,0 +1,47 @@
+name: Deploy Spring Boot Server
+
+on:
+  push:
+    branches:
+      - d/prod
+      - d/test
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_KEY }}
+          envs: ENV_FILE_CONTENT
+          script: |
+            # 서버 내부의 프로젝트 Git 경로로 이동 (환경에 맞게 변경 필요)
+            cd /Users/${{ secrets.SERVER_USER }}/Documents/release/herenow-server
+            
+            git fetch --all
+            
+            # Github Secret에서 넘어온 환경 변수 내용을 .env 파일로 동적으로 주입
+            echo "$ENV_FILE_CONTENT" > .env
+            
+            # 운영 서버 배포 (d/prod)
+            if [ "${{ github.ref }}" = "refs/heads/d/prod" ]; then
+              echo "Deploying Production Environment..."
+              git checkout d/prod
+              git pull origin d/prod
+              docker-compose up -d --build herenow-prod-api
+              
+            # 테스트 서버 배포 (d/test)
+            elif [ "${{ github.ref }}" = "refs/heads/d/test" ]; then
+              echo "Deploying Test/Dev Environment..."
+              git checkout d/test
+              git pull origin d/test
+              docker-compose up -d --build herenow-dev-api
+            fi
+            
+            # 빌드 이후 사용되지 않는 댕글링 이미지(태그 없는 이전 이미지) 자동 정리
+            docker image prune -f
