@@ -38,6 +38,15 @@ class ItemController(
         return itemService.getItems(groupId, request, pageable)
     }
 
+    @Operation(summary = "아이템 단건 조회", description = "아이템의 상세 정보를 조회합니다.")
+    @GetMapping("/{itemId}")
+    fun getItem(
+        @PathVariable groupId: String,
+        @PathVariable itemId: String
+    ): ItemResponse {
+        return itemService.getItem(groupId, itemId)
+    }
+
     @Operation(summary = "아이템 생성", description = "아이템 기본 정보, 사진, 태그를 한 번에 등록합니다.")
     @PostMapping
     fun createItem(

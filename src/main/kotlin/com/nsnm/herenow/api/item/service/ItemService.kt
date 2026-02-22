@@ -45,6 +45,14 @@ class ItemService(
         return entityPage.map { mapToItemResponse(it) }
     }
 
+    @Transactional(readOnly = true)
+    fun getItem(groupId: String, itemId: String): ItemResponse {
+        val itemEntity = itemRepository.findById(itemId)
+            .filter { it.groupId == groupId }
+            .orElseThrow { BizException("존재하지 않거나 권한이 없는 아이템입니다.") }
+        return mapToItemResponse(itemEntity)
+    }
+
     @Transactional
     fun createItem(groupId: String, request: CreateItemRequest): ItemResponse {
         // 1. 참조 데이터 유효성 검증
@@ -105,7 +113,9 @@ class ItemService(
             itemId = savedItem.itemId,
             itemName = savedItem.itemName,
             categoryId = savedItem.categoryId,
+            categoryName = savedItem.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName },
             locationId = savedItem.locationId,
+            locationName = savedItem.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName },
             quantity = savedItem.quantity,
             minQuantity = savedItem.minQuantity,
             expiryDate = savedItem.expiryDate,
@@ -173,7 +183,9 @@ class ItemService(
             itemId = savedItem.itemId,
             itemName = savedItem.itemName,
             categoryId = savedItem.categoryId,
+            categoryName = savedItem.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName },
             locationId = savedItem.locationId,
+            locationName = savedItem.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName },
             quantity = savedItem.quantity,
             minQuantity = savedItem.minQuantity,
             expiryDate = savedItem.expiryDate,
@@ -209,7 +221,9 @@ class ItemService(
             itemId = itemEntity.itemId,
             itemName = itemEntity.itemName,
             categoryId = itemEntity.categoryId,
+            categoryName = itemEntity.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName },
             locationId = itemEntity.locationId,
+            locationName = itemEntity.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName },
             quantity = itemEntity.quantity,
             minQuantity = itemEntity.minQuantity,
             expiryDate = itemEntity.expiryDate,
