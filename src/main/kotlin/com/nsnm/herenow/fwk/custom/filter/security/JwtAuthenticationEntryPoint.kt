@@ -24,7 +24,9 @@ class JwtAuthenticationEntryPoint(
         response: HttpServletResponse,
         authException: AuthenticationException
     ) {
-        log.warn("Unauthorized access attempt from ${request.remoteAddr}: ${authException.message}")
+        val authHeader = request.getHeader("Authorization")
+        val shortAuth = authHeader?.take(20)?.plus("...") ?: "null"
+        log.warn("Unauthorized access attempt from ${request.remoteAddr} | URI: [${request.method}] ${request.requestURI} | Auth Header: $shortAuth | Reason: ${authException.message}")
 
         val unAuthException = UnauthorizedException("인증 정보가 올바르지 않거나 권한이 없습니다.")
 

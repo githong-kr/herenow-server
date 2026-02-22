@@ -41,6 +41,7 @@ class SecurityConfig(
                         }
                     }, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter::class.java)
                 } else {
+                    // 기본 정적 및 Swagger 페이지, 헬스체크 허용, 나머지는 무조건 인증!
                     it.requestMatchers("/", "/actuator/health", "/api/v1/sample/**", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**", "/v3/api-docs.yaml")
                         .permitAll()
                         .anyRequest().authenticated()
@@ -50,12 +51,10 @@ class SecurityConfig(
             // H2 Console iFrame 접속 허용
             .headers { headers -> headers.frameOptions { it.disable() } }
 
-        if (!isLocal) {
-            // Supabase Oauth2 리소스 서버 설정
-            http.oauth2ResourceServer { oauth2 ->
-                oauth2.jwt {}
-                oauth2.authenticationEntryPoint(jwtAuthenticationEntryPoint)
-            }
+        // Supabase Oauth2 리소스 서버 설정 (로컬에서도 항상 토큰 검증 필터는 타도록 활성화)
+        http.oauth2ResourceServer { oauth2 ->
+            oauth2.jwt {}
+            oauth2.authenticationEntryPoint(jwtAuthenticationEntryPoint)
         }
 
         return http.build()
