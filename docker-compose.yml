@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  herenow-dev-api:
+    build: .
+    container_name: herenow-dev-server
+    restart: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=test
+    env_file:
+      - .env
+    ports:
+      - "8001:8080"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  herenow-prod-api:
+    build: .
+    container_name: herenow-prod-server
+    restart: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    env_file:
+      - .env
+    ports:
+      - "8002:8080"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
