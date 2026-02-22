@@ -4,6 +4,7 @@ import com.nsnm.herenow.api.user.v1.dto.GroupJoinRequestDto
 import com.nsnm.herenow.api.user.v1.dto.GroupMemberDto
 import com.nsnm.herenow.api.user.v1.dto.UserGroupDto
 import com.nsnm.herenow.domain.group.model.entity.GroupJoinRequestEntity
+import com.nsnm.herenow.domain.group.model.entity.UserGroupEntity
 import com.nsnm.herenow.domain.group.model.entity.UserGroupMemberEntity
 import com.nsnm.herenow.domain.group.model.enums.GroupRole
 import com.nsnm.herenow.domain.group.model.enums.JoinRequestStatus
@@ -22,6 +23,31 @@ class UserGroupService(
     private val userGroupMemberRepository: UserGroupMemberRepository,
     private val groupJoinRequestRepository: GroupJoinRequestRepository
 ) : BaseService() {
+
+    @Transactional
+    fun createGroup(groupName: String, profileId: String): UserGroupDto {
+        // 1. 그룹 생성
+        var group = UserGroupEntity(
+            groupName = groupName,
+            ownerProfileId = profileId
+        )
+        group = userGroupRepository.save(group)
+
+        // 2. 그룹 소유자를 멤버로 등록
+        val groupMember = UserGroupMemberEntity(
+            groupId = group.groupId,
+            profileId = profileId,
+            role = GroupRole.OWNER
+        )
+        userGroupMemberRepository.save(groupMember)
+
+        return UserGroupDto(
+            groupId = group.groupId,
+            groupName = group.groupName,
+            ownerProfileId = group.ownerProfileId,
+            inviteCode = group.inviteCode
+        )
+    }
 
     @Transactional(readOnly = true)
     fun getGroupInfo(groupId: String): UserGroupDto {

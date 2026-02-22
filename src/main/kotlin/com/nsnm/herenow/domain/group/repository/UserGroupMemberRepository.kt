@@ -9,5 +9,6 @@ import org.springframework.stereotype.Repository
 interface UserGroupMemberRepository : JpaRepository<UserGroupMemberEntity, String> {
     fun findByProfileIdAndGroupId(profileId: String, groupId: String): UserGroupMemberEntity?
     fun findByGroupId(groupId: String): List<UserGroupMemberEntity>
+    fun findByProfileId(profileId: String): List<UserGroupMemberEntity>
     fun findByProfileIdAndRole(profileId: String, role: GroupRole): List<UserGroupMemberEntity>
 }

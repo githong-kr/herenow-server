@@ -1,6 +1,7 @@
 package com.nsnm.herenow.api.user.v1
 
 import com.nsnm.herenow.api.user.service.UserGroupService
+import com.nsnm.herenow.api.user.v1.dto.CreateGroupRequest
 import com.nsnm.herenow.api.user.v1.dto.GroupJoinRequestDto
 import com.nsnm.herenow.api.user.v1.dto.GroupMemberDto
 import com.nsnm.herenow.api.user.v1.dto.JoinGroupRequest
@@ -23,6 +24,13 @@ import com.nsnm.herenow.fwk.core.base.BaseController
 class UserGroupController(
     private val userGroupService: UserGroupService
 ) : BaseController() {
+
+    @Operation(summary = "새 그룹(스페이스) 생성", description = "사용자가 새로운 스페이스를 만들고 방장(OWNER) 권한을 가집니다.")
+    @PostMapping
+    fun createGroup(@RequestBody request: CreateGroupRequest): UserGroupDto {
+        val uid = SecurityContextHolder.getContext().authentication.name
+        return userGroupService.createGroup(request.groupName, uid)
+    }
 
     @Operation(summary = "해당 그룹 기본 정보 조회", description = "그룹의 소유주와 현재 설정된 초대 코드 정보를 조회합니다.")
     @GetMapping("/{groupId}")

@@ -31,3 +31,14 @@ data class ProcessJoinRequest(
     val requestId: String,
     val approve: Boolean // true: 승인, false: 거절
 )
+
+data class MyGroupDto(
+    val groupId: String,
+    val groupName: String,
+    val role: GroupRole,
+    val isDefault: Boolean
+)
+
+data class CreateGroupRequest(
+    val groupName: String
+)

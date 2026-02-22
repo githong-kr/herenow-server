@@ -1,5 +1,6 @@
 package com.nsnm.herenow.api.user.service
 
+import com.nsnm.herenow.api.user.v1.dto.MyGroupDto
 import com.nsnm.herenow.api.user.v1.dto.UserRegistrationRequest
 import com.nsnm.herenow.api.user.v1.dto.UserRegistrationResponse
 import com.nsnm.herenow.domain.group.model.entity.UserGroupEntity
@@ -9,6 +10,7 @@ import com.nsnm.herenow.domain.group.repository.UserGroupMemberRepository
 import com.nsnm.herenow.domain.group.repository.UserGroupRepository
 import com.nsnm.herenow.domain.user.model.entity.ProfileEntity
 import com.nsnm.herenow.domain.user.repository.ProfileRepository
+import com.nsnm.herenow.fwk.core.error.BizException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import com.nsnm.herenow.fwk.core.base.BaseService
@@ -75,5 +77,45 @@ class UserService(
             groupId = group.groupId,
             groupName = group.groupName
         )
+    }
+
+    /**
+     * 사용자가 속한 모든 그룹 목록을 조회합니다.
+     */
+    @Transactional(readOnly = true)
+    fun getMyGroups(profileId: String): List<MyGroupDto> {
+        val profile = profileRepository.findById(profileId)
+            .orElseThrow { BizException("존재하지 않는 사용자입니다.") }
+
+        val members = userGroupMemberRepository.findByProfileId(profileId)
+        return members.mapNotNull { member ->
+            val group = userGroupRepository.findById(member.groupId).orElse(null)
+            if (group != null) {
+                MyGroupDto(
+                    groupId = group.groupId,
+                    groupName = group.groupName,
+                    role = member.role,
+                    isDefault = (profile.representativeGroupId == group.groupId)
+                )
+            } else {
+                null
+            }
+        }
+    }
+
+    /**
+     * 사용자의 기본(대표) 그룹을 변경합니다.
+     */
+    @Transactional
+    fun setDefaultGroup(profileId: String, groupId: String) {
+        val profile = profileRepository.findById(profileId)
+            .orElseThrow { BizException("존재하지 않는 사용자입니다.") }
+        
+        // 사용자가 해당 그룹 멤버인지 확인
+        val member = userGroupMemberRepository.findByProfileIdAndGroupId(profileId, groupId)
+            ?: throw BizException("해당 그룹의 멤버가 아닙니다.")
+        
+        profile.representativeGroupId = groupId
+        profileRepository.save(profile)
     }
 }
