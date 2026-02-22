@@ -84,7 +84,8 @@ class HomeService(
             recentItems = recentItems,
             locationsSummary = locationsSummary,
             categoriesSummary = categoriesSummary,
-            groupName = groupName
+            groupName = groupName,
+            groupId = groupId
         )
     }
 

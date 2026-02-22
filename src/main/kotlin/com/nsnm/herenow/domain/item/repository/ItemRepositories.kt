@@ -7,6 +7,7 @@ import com.nsnm.herenow.domain.item.model.entity.ItemTagEntity
 import com.nsnm.herenow.domain.item.model.entity.LocationEntity
 import com.nsnm.herenow.domain.item.model.entity.TagEntity
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 import org.springframework.stereotype.Repository
 
 @Repository
@@ -31,7 +32,7 @@ interface ItemTagRepository : JpaRepository<ItemTagEntity, String> {
 }
 
 @Repository
-interface ItemRepository : JpaRepository<ItemEntity, String> {
+interface ItemRepository : JpaRepository<ItemEntity, String>, JpaSpecificationExecutor<ItemEntity> {
     fun findByGroupId(groupId: String): List<ItemEntity>
 }
 

@@ -39,6 +39,9 @@ data class ItemResponse(
     val categoryId: String?,
     val locationId: String?,
     val quantity: Int,
+    val minQuantity: Int,
+    val expiryDate: LocalDate?,
+    val memo: String?,
     val tags: List<String>,
     val photoUrls: List<String>
 )

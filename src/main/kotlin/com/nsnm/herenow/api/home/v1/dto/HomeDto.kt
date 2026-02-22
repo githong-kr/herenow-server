@@ -25,7 +25,10 @@ data class HomeResponse(
     val categoriesSummary: Map<String, List<String>>,
 
     @Schema(description = "현재 조회된 대표 그룹명")
-    val groupName: String? = null
+    val groupName: String? = null,
+
+    @Schema(description = "현재 조회된 대표 그룹 ID")
+    val groupId: String? = null
 )
 
 data class HomeItemDto(

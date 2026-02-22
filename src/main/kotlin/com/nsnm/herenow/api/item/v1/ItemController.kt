@@ -4,8 +4,14 @@ import com.nsnm.herenow.api.item.service.ItemService
 import com.nsnm.herenow.api.item.v1.dto.CreateItemRequest
 import com.nsnm.herenow.api.item.v1.dto.ItemResponse
 import com.nsnm.herenow.api.item.v1.dto.UpdateItemRequest
+import com.nsnm.herenow.api.item.v1.dto.SearchItemRequest
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springdoc.core.annotations.ParameterObject
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+import org.springframework.data.web.PageableDefault
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -21,6 +27,16 @@ import com.nsnm.herenow.fwk.core.base.BaseController
 class ItemController(
     private val itemService: ItemService
 ) : BaseController() {
+
+    @Operation(summary = "아이템 필터링 및 목록 조회", description = "조건에 따라 아이템들을 페이징 단위로 검색합니다.")
+    @GetMapping
+    fun getItems(
+        @PathVariable groupId: String,
+        @ParameterObject request: SearchItemRequest,
+        @PageableDefault(size = 20) @ParameterObject pageable: Pageable
+    ): Page<ItemResponse> {
+        return itemService.getItems(groupId, request, pageable)
+    }
 
     @Operation(summary = "아이템 생성", description = "아이템 기본 정보, 사진, 태그를 한 번에 등록합니다.")
     @PostMapping

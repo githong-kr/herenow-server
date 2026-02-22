@@ -13,7 +13,10 @@ import com.nsnm.herenow.domain.item.repository.ItemRepository
 import com.nsnm.herenow.domain.item.repository.ItemTagRepository
 import com.nsnm.herenow.domain.item.repository.LocationRepository
 import com.nsnm.herenow.domain.item.repository.TagRepository
+import com.nsnm.herenow.api.item.v1.dto.SearchItemRequest
 import com.nsnm.herenow.fwk.core.error.BizException
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -28,6 +31,19 @@ class ItemService(
     private val itemTagRepository: ItemTagRepository,
     private val itemPhotoRepository: ItemPhotoRepository
 ) : BaseService() {
+
+    @Transactional(readOnly = true)
+    fun getItems(groupId: String, request: SearchItemRequest, pageable: Pageable): Page<ItemResponse> {
+        val spec = ItemSpecification.search(
+            groupId = groupId,
+            keyword = request.keyword,
+            categoryId = request.categoryId,
+            locationId = request.locationId,
+            status = request.status
+        )
+        val entityPage = itemRepository.findAll(spec, pageable)
+        return entityPage.map { mapToItemResponse(it) }
+    }
 
     @Transactional
     fun createItem(groupId: String, request: CreateItemRequest): ItemResponse {
@@ -91,6 +107,9 @@ class ItemService(
             categoryId = savedItem.categoryId,
             locationId = savedItem.locationId,
             quantity = savedItem.quantity,
+            minQuantity = savedItem.minQuantity,
+            expiryDate = savedItem.expiryDate,
+            memo = savedItem.memo,
             tags = savedTagNames,
             photoUrls = savedPhotos.map { it.photoUrl }
         )
@@ -156,6 +175,9 @@ class ItemService(
             categoryId = savedItem.categoryId,
             locationId = savedItem.locationId,
             quantity = savedItem.quantity,
+            minQuantity = savedItem.minQuantity,
+            expiryDate = savedItem.expiryDate,
+            memo = savedItem.memo,
             tags = savedTagNames,
             photoUrls = savedPhotos.map { it.photoUrl }
         )
@@ -173,5 +195,27 @@ class ItemService(
         
         // 아이템 엔티티 삭제
         itemRepository.delete(itemEntity)
+    }
+
+    private fun mapToItemResponse(itemEntity: ItemEntity): ItemResponse {
+        val tags = itemTagRepository.findByItemId(itemEntity.itemId)
+            .map { tagRepository.findById(it.tagId).orElse(null)?.tagName ?: "" }
+            .filter { it.isNotBlank() }
+        
+        val photoUrls = itemPhotoRepository.findByItemId(itemEntity.itemId)
+            .map { it.photoUrl }
+
+        return ItemResponse(
+            itemId = itemEntity.itemId,
+            itemName = itemEntity.itemName,
+            categoryId = itemEntity.categoryId,
+            locationId = itemEntity.locationId,
+            quantity = itemEntity.quantity,
+            minQuantity = itemEntity.minQuantity,
+            expiryDate = itemEntity.expiryDate,
+            memo = itemEntity.memo,
+            tags = tags,
+            photoUrls = photoUrls
+        )
     }
 }
