@@ -24,15 +24,16 @@ jobs:
             export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin:/Users/${{ secrets.SERVER_USER }}/.docker/bin
             export DOCKER_HOST="unix:///Users/${{ secrets.SERVER_USER }}/.docker/run/docker.sock"
             
-            # [HOTFIX 2] SSH 환경 빌드 시 데스크탑 BuildKit 캐시 엔진이 keychain 권한을 요구하는 문제 원천 차단
-            export DOCKER_BUILDKIT=0
-            export COMPOSE_DOCKER_CLI_BUILD=0
-            
-            # [HOTFIX 2] SSH 환경 빌드 시 데스크탑 keychain 로직 강제 진입 방지를 위해 원본 config 파일 백업 및 무력화
-            DOCKER_CONF="/Users/${{ secrets.SERVER_USER }}/.docker/config.json"
-            if [ -f "$DOCKER_CONF" ]; then mv "$DOCKER_CONF" "${DOCKER_CONF}.bak"; fi
-            # Docker Desktop의 기본값(desktop credential helper) 발동을 강제 차단합니다.
-            echo '{"credsStore":""}' > "$DOCKER_CONF"
+            # [HOTFIX 2] SSH 비대화형 환경에서 Desktop Keychain 권한(보안) 에러를 우회하는 가짜 Credential Helper 주입
+            mkdir -p /tmp/fake-bin
+            cat << 'EOF' > /tmp/fake-bin/docker-credential-osxkeychain
+            #!/bin/sh
+            echo "credentials not found in native keychain"
+            exit 1
+            EOF
+            cp /tmp/fake-bin/docker-credential-osxkeychain /tmp/fake-bin/docker-credential-desktop
+            chmod +x /tmp/fake-bin/docker-credential-*
+            export PATH=/tmp/fake-bin:$PATH
             
             # 서버 내부의 프로젝트 Git 경로로 이동
             cd /Users/${{ secrets.SERVER_USER }}/Documents/release/herenow-server
@@ -64,7 +65,6 @@ jobs:
                 sleep 5
                 if [ $i -eq 12 ]; then
                   echo "❌ Server failed to respond in time."
-                  if [ -f "${DOCKER_CONF}.bak" ]; then mv "${DOCKER_CONF}.bak" "$DOCKER_CONF"; fi
                   exit 1
                 fi
               done
@@ -90,15 +90,13 @@ jobs:
                 sleep 5
                 if [ $i -eq 12 ]; then
                   echo "❌ Server failed to respond in time."
-                  if [ -f "${DOCKER_CONF}.bak" ]; then mv "${DOCKER_CONF}.bak" "$DOCKER_CONF"; fi
                   exit 1
                 fi
               done
             fi
             
-            # [HOTFIX 2 복구] 정상 빌드 종료 후 무력화 파일 삭제 및 백업한 config.json 원복
-            rm -f "$DOCKER_CONF"
-            if [ -f "${DOCKER_CONF}.bak" ]; then mv "${DOCKER_CONF}.bak" "$DOCKER_CONF"; fi
+            # [HOTFIX 2 정리] 빌드 완료 후 임시 스크립트 삭제
+            rm -rf /tmp/fake-bin
             
             # 빌드 이후 사용되지 않는 댕글링 이미지 자동 정리
             docker image prune -f
