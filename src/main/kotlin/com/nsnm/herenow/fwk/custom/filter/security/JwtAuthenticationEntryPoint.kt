@@ -11,23 +11,30 @@ import org.springframework.security.core.AuthenticationException
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.stereotype.Component
 
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Component
+
 @Component
 class JwtAuthenticationEntryPoint(
     private val objectMapper: ObjectMapper
 ) : AuthenticationEntryPoint {
+
+    private val log = LoggerFactory.getLogger(this::class.java)
 
     override fun commence(
         request: HttpServletRequest,
         response: HttpServletResponse,
         authException: AuthenticationException
     ) {
+        log.warn("Unauthorized access attempt from ${request.remoteAddr}: ${authException.message}")
+
         val unAuthException = UnauthorizedException("인증 정보가 올바르지 않거나 권한이 없습니다.")
 
         val errorResponse = DefaultExceptionResponse(
-            messageCode = unAuthException.msgCd,
-            message = unAuthException.message,
+            messageCode = "UNAUTHORIZED",
+            message = unAuthException.msgCd,
             type = "B",
-            classType = unAuthException.javaClass.simpleName,
+            classType = authException.javaClass.simpleName,
             serviceName = "Spring Security Filter",
             lineNumber = 0,
             methodName = "commence"
