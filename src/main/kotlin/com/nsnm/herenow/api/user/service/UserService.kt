@@ -34,6 +34,7 @@ class UserService(
             return UserRegistrationResponse(
                 profileId = existingProfile.profileId,
                 name = existingProfile.name,
+                avatarUrl = existingProfile.avatarUrl,
                 groupId = existingProfile.representativeGroupId ?: "UNKNOWN",
                 groupName = "Existing Group"
             )
@@ -74,8 +75,34 @@ class UserService(
         return UserRegistrationResponse(
             profileId = profile.profileId,
             name = profile.name,
+            avatarUrl = profile.avatarUrl,
             groupId = group.groupId,
             groupName = group.groupName
+        )
+    }
+
+    /**
+     * 회원 프로필 수정 (닉네임, 사진 변경)
+     */
+    @Transactional
+    fun updateProfile(profileId: String, request: com.nsnm.herenow.api.user.v1.dto.UpdateProfileRequest): UserRegistrationResponse {
+        val profile = profileRepository.findById(profileId)
+            .orElseThrow { BizException("존재하지 않는 사용자입니다.") }
+        
+        profile.name = request.name
+        profile.avatarUrl = request.avatarUrl // 널러블 처리
+        
+        // 대표 그룹 정보 조회 (현재 화면용, 옵셔널)
+        val groupName = profile.representativeGroupId?.let { 
+            userGroupRepository.findById(it).orElse(null)?.groupName 
+        } ?: "UNKNOWN"
+
+        return UserRegistrationResponse(
+            profileId = profile.profileId,
+            name = profile.name,
+            avatarUrl = profile.avatarUrl,
+            groupId = profile.representativeGroupId ?: "UNKNOWN",
+            groupName = groupName
         )
     }
 

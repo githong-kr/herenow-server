@@ -2,6 +2,7 @@ package com.nsnm.herenow.api.user.v1
 
 import com.nsnm.herenow.api.user.service.UserService
 import com.nsnm.herenow.api.user.v1.dto.MyGroupDto
+import com.nsnm.herenow.api.user.v1.dto.UpdateProfileRequest
 import com.nsnm.herenow.api.user.v1.dto.UserRegistrationRequest
 import com.nsnm.herenow.api.user.v1.dto.UserRegistrationResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -46,5 +47,14 @@ class UserController(
     fun setDefaultGroup(@PathVariable groupId: String) {
         val uid = SecurityContextHolder.getContext().authentication.name
         userService.setDefaultGroup(uid, groupId)
+    }
+
+    @Operation(summary = "내 프로필 수정", description = "로그인한 사용자의 닉네임과 프로필 사진을 변경합니다.")
+    @PutMapping("/me/profile")
+    fun updateProfile(
+        @RequestBody request: UpdateProfileRequest
+    ): UserRegistrationResponse {
+        val uid = SecurityContextHolder.getContext().authentication.name
+        return userService.updateProfile(uid, request)
     }
 }

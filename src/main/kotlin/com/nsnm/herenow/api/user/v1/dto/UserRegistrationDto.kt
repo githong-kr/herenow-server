@@ -9,6 +9,7 @@ data class UserRegistrationRequest(
 data class UserRegistrationResponse(
     val profileId: String,
     val name: String,
+    val avatarUrl: String? = null,
     val groupId: String,
     val groupName: String
 )
