@@ -1,0 +1,9 @@
+{
+  "name": "herenow-server-scripts",
+  "version": "1.0.0",
+  "description": "NPM scripts for convenient branch deployment",
+  "scripts": {
+    "deploy:test": "git push origin main:d/test",
+    "deploy:prod": "git push origin main:d/prod"
+  }
+}
