@@ -6,8 +6,10 @@ import com.nsnm.herenow.domain.group.repository.UserGroupRepository
 import com.nsnm.herenow.domain.item.model.entity.CategoryEntity
 import com.nsnm.herenow.domain.item.model.entity.ItemEntity
 import com.nsnm.herenow.domain.item.model.entity.LocationEntity
+import com.nsnm.herenow.domain.item.model.entity.ItemPhotoEntity
 import com.nsnm.herenow.domain.item.repository.CategoryRepository
 import com.nsnm.herenow.domain.item.repository.ItemRepository
+import com.nsnm.herenow.domain.item.repository.ItemPhotoRepository
 import com.nsnm.herenow.domain.item.repository.LocationRepository
 import com.nsnm.herenow.domain.user.repository.ProfileRepository
 import org.springframework.stereotype.Service
@@ -23,7 +25,8 @@ class HomeService(
     private val userGroupRepository: UserGroupRepository,
     private val itemRepository: ItemRepository,
     private val categoryRepository: CategoryRepository,
-    private val locationRepository: LocationRepository
+    private val locationRepository: LocationRepository,
+    private val itemPhotoRepository: ItemPhotoRepository
 ) : BaseService() {
 
     fun getHomeDashboardData(uid: String): HomeResponse {
@@ -40,10 +43,12 @@ class HomeService(
         val items = itemRepository.findByGroupId(groupId)
         val categories = categoryRepository.findByGroupId(groupId)
         val locations = locationRepository.findByGroupId(groupId)
+        val itemPhotos = itemPhotoRepository.findByItemIdIn(items.map { it.itemId })
 
         // 카테고리/장소 메타 데이터 맵 (빠른 매핑용)
         val catMap = categories.associateBy { it.categoryId }
         val locMap = locations.associateBy { it.locationId }
+        val photoMap = itemPhotos.groupBy { it.itemId }
 
         val now = LocalDate.now()
 
@@ -57,13 +62,13 @@ class HomeService(
             .filter { it.expiryDate != null }
             .sortedBy { it.expiryDate }
             .take(10)
-            .map { convertToHomeItemDto(it, catMap, locMap, now) }
+            .map { convertToHomeItemDto(it, catMap, locMap, photoMap, now) }
 
         // 5. 최근 아이템 리스트 (등록일/구매일 기준 역순)
         val recentItems = items
             .sortedByDescending { it.frstRegTmst }
             .take(10)
-            .map { convertToHomeItemDto(it, catMap, locMap, now) }
+            .map { convertToHomeItemDto(it, catMap, locMap, photoMap, now) }
 
         // 6. 위치/카테고리 요약 데이터
         val locationsSummary = locations
@@ -96,7 +101,7 @@ class HomeService(
     )
 
     private fun convertToHomeItemDto(
-        item: ItemEntity, catMap: Map<String, CategoryEntity>, locMap: Map<String, LocationEntity>, now: LocalDate
+        item: ItemEntity, catMap: Map<String, CategoryEntity>, locMap: Map<String, LocationEntity>, photoMap: Map<String, List<ItemPhotoEntity>>, now: LocalDate
     ): HomeItemDto {
         val catName = item.categoryId?.let { catMap[it]?.categoryName }
         val locName = item.locationId?.let { locMap[it]?.locationName }
@@ -128,7 +133,8 @@ class HomeService(
             categoryName = catName,
             locationName = locName,
             dDayText = dDayText,
-            addedDateText = addedTextText
+            addedDateText = addedTextText,
+            photoUrls = photoMap[item.itemId]?.map { it.photoUrl }
         )
     }
 }

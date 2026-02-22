@@ -48,5 +48,8 @@ data class HomeItemDto(
     val dDayText: String?,
     
     @Schema(description = "최근 추가일 기준 표시 (예: 어제, 오늘)")
-    val addedDateText: String?
+    val addedDateText: String?,
+    
+    @Schema(description = "이미지 리스트")
+    val photoUrls: List<String>? = null
 )

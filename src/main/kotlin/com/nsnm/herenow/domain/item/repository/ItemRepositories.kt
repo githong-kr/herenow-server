@@ -41,5 +41,6 @@ interface ItemRepository : JpaRepository<ItemEntity, String>, JpaSpecificationEx
 @Repository
 interface ItemPhotoRepository : JpaRepository<ItemPhotoEntity, String> {
     fun findByItemId(itemId: String): List<ItemPhotoEntity>
+    fun findByItemIdIn(itemIds: List<String>): List<ItemPhotoEntity>
     fun deleteByItemId(itemId: String)
 }
