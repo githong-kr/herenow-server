@@ -46,9 +46,10 @@ class UserGroupController(
 
     @Operation(summary = "초대 코드 갱신", description = "그룹의 소유자(OWNER)가 8자리 단축 초대 코드를 새로 갱신(발급)합니다.")
     @PostMapping("/{groupId}/invite-code")
-    fun refreshInviteCode(@PathVariable groupId: String): String {
+    fun refreshInviteCode(@PathVariable groupId: String): Map<String, String> {
         val uid = SecurityContextHolder.getContext().authentication.name
-        return userGroupService.refreshInviteCode(groupId, uid)
+        val code = userGroupService.refreshInviteCode(groupId, uid)
+        return mapOf("inviteCode" to code)
     }
 
     @Operation(summary = "가입 대기 요청 목록 조회", description = "그룹의 소유자(OWNER)가 PENDING 상태인 가입 요청(대기열)들을 리스트업합니다.")
