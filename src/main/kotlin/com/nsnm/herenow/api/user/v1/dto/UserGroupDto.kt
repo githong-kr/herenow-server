@@ -12,6 +12,8 @@ data class UserGroupDto(
 data class GroupMemberDto(
     val groupMemberId: String,
     val profileId: String,
+    val name: String,
+    val avatarUrl: String?,
     val role: GroupRole
 )
 
@@ -23,6 +25,8 @@ data class GroupJoinRequestDto(
     val requestId: String,
     val groupId: String,
     val profileId: String,
+    val name: String,
+    val avatarUrl: String?,
     val inviteCodeUsed: String,
     val status: String
 )

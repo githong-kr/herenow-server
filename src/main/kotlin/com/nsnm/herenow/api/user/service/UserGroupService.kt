@@ -11,6 +11,7 @@ import com.nsnm.herenow.domain.group.model.enums.JoinRequestStatus
 import com.nsnm.herenow.domain.group.repository.GroupJoinRequestRepository
 import com.nsnm.herenow.domain.group.repository.UserGroupMemberRepository
 import com.nsnm.herenow.domain.group.repository.UserGroupRepository
+import com.nsnm.herenow.domain.user.repository.ProfileRepository
 import com.nsnm.herenow.fwk.core.error.BizException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -21,7 +22,8 @@ import com.nsnm.herenow.fwk.core.base.BaseService
 class UserGroupService(
     private val userGroupRepository: UserGroupRepository,
     private val userGroupMemberRepository: UserGroupMemberRepository,
-    private val groupJoinRequestRepository: GroupJoinRequestRepository
+    private val groupJoinRequestRepository: GroupJoinRequestRepository,
+    private val profileRepository: ProfileRepository
 ) : BaseService() {
 
     @Transactional
@@ -66,9 +68,12 @@ class UserGroupService(
     fun getGroupMembers(groupId: String): List<GroupMemberDto> {
         val members = userGroupMemberRepository.findByGroupId(groupId)
         return members.map {
+            val profile = profileRepository.findById(it.profileId).orElse(null)
             GroupMemberDto(
                 groupMemberId = it.groupMemberId,
                 profileId = it.profileId,
+                name = profile?.name ?: "알 수 없음",
+                avatarUrl = profile?.avatarUrl,
                 role = it.role
             )
         }
@@ -117,10 +122,14 @@ class UserGroupService(
         )
         groupJoinRequestRepository.save(newRequest)
 
+        val profile = profileRepository.findById(profileId).orElse(null)
+
         return GroupJoinRequestDto(
             requestId = newRequest.requestId,
             groupId = newRequest.groupId,
             profileId = newRequest.profileId,
+            name = profile?.name ?: "알 수 없음",
+            avatarUrl = profile?.avatarUrl,
             inviteCodeUsed = newRequest.inviteCodeUsed,
             status = newRequest.status.name
         )
@@ -137,10 +146,13 @@ class UserGroupService(
 
         val requests = groupJoinRequestRepository.findByGroupIdAndStatus(groupId, JoinRequestStatus.PENDING)
         return requests.map {
+            val profile = profileRepository.findById(it.profileId).orElse(null)
             GroupJoinRequestDto(
                 requestId = it.requestId,
                 groupId = it.groupId,
                 profileId = it.profileId,
+                name = profile?.name ?: "알 수 없음",
+                avatarUrl = profile?.avatarUrl,
                 inviteCodeUsed = it.inviteCodeUsed,
                 status = it.status.name
             )
