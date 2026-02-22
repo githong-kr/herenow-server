@@ -27,9 +27,7 @@ class SecurityConfig(
             .cors { it.configurationSource(corsConfigurationSource()) }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) } // JWT(혹은 자체 토큰) 방식이므로 Stateless 세팅
             .authorizeHttpRequests {
-
                 if (isLocal) {
-                    // [로컬 환경] 모든 API 허가 (테스트 편리성) 및 더미 사용자(dummy-uid-1234) 자동 세팅
                     it.anyRequest().permitAll()
                     http.addFilterBefore(object : org.springframework.web.filter.OncePerRequestFilter() {
                         override fun doFilterInternal(
@@ -43,7 +41,6 @@ class SecurityConfig(
                         }
                     }, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter::class.java)
                 } else {
-                    // [운영/테스트 환경] 기본 정적 및 Swagger 페이지, 헬스체크 허용, 나머지는 인증
                     it.requestMatchers("/", "/actuator/health", "/api/v1/sample/**", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**", "/v3/api-docs.yaml")
                         .permitAll()
                         .anyRequest().authenticated()
@@ -54,14 +51,24 @@ class SecurityConfig(
             .headers { headers -> headers.frameOptions { it.disable() } }
 
         if (!isLocal) {
-            // Supabase Oauth2 리소스 서버 설정 (application.yml jwks-uri 연동)
+            // Supabase Oauth2 리소스 서버 설정
             http.oauth2ResourceServer { oauth2 ->
-                oauth2.jwt {} // application.yml의 jwk-set-uri 설정을 참조함
+                oauth2.jwt {}
                 oauth2.authenticationEntryPoint(jwtAuthenticationEntryPoint)
             }
         }
 
         return http.build()
+    }
+
+    @Bean
+    fun jwtDecoder(): org.springframework.security.oauth2.jwt.JwtDecoder {
+        val jwkSetUri = env.getProperty("spring.security.oauth2.resourceserver.jwt.jwk-set-uri") 
+            ?: throw IllegalStateException("jwk-set-uri is required for JWT validation")
+        
+        return org.springframework.security.oauth2.jwt.NimbusJwtDecoder.withJwkSetUri(jwkSetUri)
+            .jwsAlgorithm(org.springframework.security.oauth2.jose.jws.SignatureAlgorithm.ES256)
+            .build()
     }
 
     @Bean
