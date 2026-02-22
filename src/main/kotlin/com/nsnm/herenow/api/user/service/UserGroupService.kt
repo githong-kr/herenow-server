@@ -28,10 +28,12 @@ class UserGroupService(
 
     @Transactional
     fun createGroup(groupName: String, profileId: String): UserGroupDto {
-        // 1. 그룹 생성
+        // 1. 그룹 생성 및 초기 초대 코드 발급
+        val initialInviteCode = UUID.randomUUID().toString().replace("-", "").substring(0, 8).uppercase()
         var group = UserGroupEntity(
             groupName = groupName,
-            ownerProfileId = profileId
+            ownerProfileId = profileId,
+            inviteCode = initialInviteCode
         )
         group = userGroupRepository.save(group)
 
