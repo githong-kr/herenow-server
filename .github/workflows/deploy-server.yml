@@ -24,9 +24,9 @@ jobs:
             export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin:/Users/${{ secrets.SERVER_USER }}/.docker/bin
             export DOCKER_HOST="unix:///Users/${{ secrets.SERVER_USER }}/.docker/run/docker.sock"
             
-            # [HOTFIX 2] SSH 환경에서 빌드 시 데스크탑 keychain 권한 접근 불가 에러 우회 (임시 폴더에 credsStore 없는 config 생성)
-            mkdir -p /tmp/docker-config && echo "{}" > /tmp/docker-config/config.json
-            export DOCKER_CONFIG=/tmp/docker-config
+            # [HOTFIX 2] SSH 환경 빌드 시 데스크탑 keychain 권한 에러 방지를 위해 원본 config 파일 임시 백업 및 격리
+            DOCKER_CONF="/Users/${{ secrets.SERVER_USER }}/.docker/config.json"
+            if [ -f "$DOCKER_CONF" ]; then mv "$DOCKER_CONF" "${DOCKER_CONF}.bak"; fi
             
             # 서버 내부의 프로젝트 Git 경로로 이동
             cd /Users/${{ secrets.SERVER_USER }}/Documents/release/herenow-server
@@ -55,6 +55,7 @@ jobs:
                 sleep 5
                 if [ $i -eq 12 ]; then
                   echo "❌ Server failed to respond in time."
+                  if [ -f "${DOCKER_CONF}.bak" ]; then mv "${DOCKER_CONF}.bak" "$DOCKER_CONF"; fi
                   exit 1
                 fi
               done
@@ -77,13 +78,14 @@ jobs:
                 sleep 5
                 if [ $i -eq 12 ]; then
                   echo "❌ Server failed to respond in time."
+                  if [ -f "${DOCKER_CONF}.bak" ]; then mv "${DOCKER_CONF}.bak" "$DOCKER_CONF"; fi
                   exit 1
                 fi
               done
             fi
             
-            # 스크립트 종료 전 임시 DOCKER_CONFIG 정리
-            rm -rf /tmp/docker-config
+            # [HOTFIX 2 복구] 정상 빌드 종료 후 백업한 config.json 원복
+            if [ -f "${DOCKER_CONF}.bak" ]; then mv "${DOCKER_CONF}.bak" "$DOCKER_CONF"; fi
             
             # 빌드 이후 사용되지 않는 댕글링 이미지 자동 정리
             docker image prune -f
