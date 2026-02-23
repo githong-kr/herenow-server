@@ -2,6 +2,7 @@ package com.nsnm.herenow.api.home.service
 
 import com.nsnm.herenow.api.home.v1.dto.HomeItemDto
 import com.nsnm.herenow.api.home.v1.dto.HomeResponse
+import com.nsnm.herenow.api.home.v1.dto.HomeSummaryItemDto
 import com.nsnm.herenow.domain.group.repository.UserGroupRepository
 import com.nsnm.herenow.domain.item.model.entity.CategoryEntity
 import com.nsnm.herenow.domain.item.model.entity.ItemEntity
@@ -74,12 +75,12 @@ class HomeService(
         val locationsSummary = locations
             .filter { it.locationGroup != null }
             .groupBy { it.locationGroup!! }
-            .mapValues { entry -> entry.value.sortedBy { it.displayOrder }.map { it.locationName } }
+            .mapValues { entry -> entry.value.sortedBy { it.displayOrder }.map { HomeSummaryItemDto(id = it.locationId, name = it.locationName) } }
 
         val categoriesSummary = categories
             .filter { it.categoryGroup != null }
             .groupBy { it.categoryGroup!! }
-            .mapValues { entry -> entry.value.sortedBy { it.displayOrder }.map { it.categoryName } }
+            .mapValues { entry -> entry.value.sortedBy { it.displayOrder }.map { HomeSummaryItemDto(id = it.categoryId, name = it.categoryName) } }
 
         return HomeResponse(
             totalItemCount = totalItemCount,

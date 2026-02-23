@@ -18,11 +18,11 @@ data class HomeResponse(
     @Schema(description = "최근 추가된 항목 리스트 (최대 10개)")
     val recentItems: List<HomeItemDto>,
     
-    @Schema(description = "장소별 모아보기 요약 데이터 (Key: locationGroup, Value: locationName 리스트)")
-    val locationsSummary: Map<String, List<String>>,
+    @Schema(description = "장소별 모아보기 요약 데이터 (Key: locationGroup, Value: HomeSummaryItemDto 리스트)")
+    val locationsSummary: Map<String, List<HomeSummaryItemDto>>,
     
-    @Schema(description = "카테고리별 모아보기 요약 데이터 (Key: categoryGroup, Value: categoryName 리스트)")
-    val categoriesSummary: Map<String, List<String>>,
+    @Schema(description = "카테고리별 모아보기 요약 데이터 (Key: categoryGroup, Value: HomeSummaryItemDto 리스트)")
+    val categoriesSummary: Map<String, List<HomeSummaryItemDto>>,
 
     @Schema(description = "현재 조회된 대표 그룹명")
     val groupName: String? = null,
@@ -52,4 +52,12 @@ data class HomeItemDto(
     
     @Schema(description = "이미지 리스트")
     val photoUrls: List<String>? = null
+)
+
+data class HomeSummaryItemDto(
+    @Schema(description = "고유 식별자(ID)")
+    val id: String,
+    
+    @Schema(description = "노출될 이름")
+    val name: String
 )
