@@ -66,16 +66,10 @@ jobs:
             export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin:/Users/${{ secrets.SERVER_USER }}/.docker/bin
             export DOCKER_HOST="unix:///Users/${{ secrets.SERVER_USER }}/.docker/run/docker.sock"
             
-            # [HOTFIX 2] SSH 비대화형 환경에서 Desktop Keychain 권한(보안) 에러를 우회하는 가짜 Credential Helper 주입
-            mkdir -p /tmp/fake-bin
-            cat << 'EOF' > /tmp/fake-bin/docker-credential-osxkeychain
-            #!/bin/sh
-            echo "credentials not found in native keychain"
-            exit 1
-            EOF
-            cp /tmp/fake-bin/docker-credential-osxkeychain /tmp/fake-bin/docker-credential-desktop
-            chmod +x /tmp/fake-bin/docker-credential-*
-            export PATH=/tmp/fake-bin:$PATH
+            # [HOTFIX 2] SSH 비대화형 환경에서 Desktop Keychain 권한 에러 방지
+            # 임시 DOCKER_CONFIG를 사용하여 기존의 osxkeychain 설정과 격리
+            export DOCKER_CONFIG=/tmp/docker-ghcr-config
+            mkdir -p $DOCKER_CONFIG
             
             # GHCR 로그인 (서버 내부에서 이미지를 pull 받기 위함)
             # 사용자가 Secrets에 등록한 GHCR_PAT 활용 (read:packages 권한)
@@ -140,5 +134,5 @@ jobs:
             # 빌드 이후 사용되지 않는 댕글링/구버전 이미지 자동 정리
             docker image prune -f
             
-            # [HOTFIX 2 정리] 빌드 완료 후 임시 스크립트 삭제
-            rm -rf /tmp/fake-bin
+            # [HOTFIX 2 정리] 빌드 완료 후 격리용 DOCKER_CONFIG 임시 스크립트 폴더 삭제
+            rm -rf $DOCKER_CONFIG
