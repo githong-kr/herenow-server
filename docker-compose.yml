@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   herenow-dev-api:
-    image: ghcr.io/githong-kr/herenow-server-api:test
+    build: .
     container_name: herenow-dev-server
     restart: always
     environment:
@@ -20,7 +20,7 @@ services:
         max-file: "3"
 
   herenow-prod-api:
-    image: ghcr.io/githong-kr/herenow-server-api:prod
+    build: .
     container_name: herenow-prod-server
     restart: always
     environment:

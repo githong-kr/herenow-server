@@ -6,59 +6,19 @@ on:
       - d/prod
       - d/test
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}-api
-
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=prod,enable=${{ github.ref == 'refs/heads/d/prod' }}
-            type=raw,value=test,enable=${{ github.ref == 'refs/heads/d/test' }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
   deploy:
-    needs: build-and-push
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
           ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
-          GHCR_PAT: ${{ secrets.GHCR_PAT }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_KEY }}
-          envs: ENV_FILE_CONTENT,GHCR_PAT
+          envs: ENV_FILE_CONTENT
           script: |
             set -e
             
@@ -66,22 +26,21 @@ jobs:
             export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin:/Users/${{ secrets.SERVER_USER }}/.docker/bin
             export DOCKER_HOST="unix:///Users/${{ secrets.SERVER_USER }}/.docker/run/docker.sock"
             
-            # [HOTFIX 2] SSH 비대화형 환경에서 Desktop Keychain 권한 에러 방지
-            # 임시 DOCKER_CONFIG를 생성하고 빈 credsStore 설정 파일({"credsStore": ""})을 주입하여
-            # Docker가 osxkeychain 연동 시도 자체를 하지 않도록 원천 차단
-            export DOCKER_CONFIG=/tmp/docker-ghcr-config
-            mkdir -p $DOCKER_CONFIG
-            echo '{"credsStore": ""}' > $DOCKER_CONFIG/config.json
-            
-            # GHCR 로그인 (서버 내부에서 이미지를 pull 받기 위함)
-            # 사용자가 Secrets에 등록한 GHCR_PAT 활용 (read:packages 권한)
-            echo "$GHCR_PAT" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+            # [HOTFIX 2] SSH 비대화형 환경에서 Desktop Keychain 권한(보안) 에러를 우회하는 가짜 Credential Helper 주입
+            mkdir -p /tmp/fake-bin
+            cat << 'EOF' > /tmp/fake-bin/docker-credential-osxkeychain
+            #!/bin/sh
+            echo "credentials not found in native keychain"
+            exit 1
+            EOF
+            cp /tmp/fake-bin/docker-credential-osxkeychain /tmp/fake-bin/docker-credential-desktop
+            chmod +x /tmp/fake-bin/docker-credential-*
+            export PATH=/tmp/fake-bin:$PATH
             
             # 서버 내부의 프로젝트 Git 경로로 이동
             cd /Users/${{ secrets.SERVER_USER }}/Documents/release/herenow-server
             
-            git fetch origin
-            git reset --hard origin/${{ github.ref_name }}
+            git fetch --all
             
             # Github Secret에서 넘어온 환경 변수 내용을 .env 파일로 동적으로 주입
             echo "$ENV_FILE_CONTENT" > .env
@@ -89,14 +48,18 @@ jobs:
             # 운영 서버 배포 (d/prod)
             if [ "${{ github.ref }}" = "refs/heads/d/prod" ]; then
               echo "Deploying Production Environment..."
-              
-              # 새 이미지만 Pull (빌드 X)
-              docker-compose pull herenow-prod-api
+              git fetch origin d/prod
+              git checkout -B d/prod origin/d/prod
+              git reset --hard origin/d/prod
+              # 1. 빌드 전용 엔진으로 (캐시 없이, 백그라운드 없이) 순수 빌드만 진행 (Keychain 회피)
+              docker-compose build --no-cache herenow-prod-api
+              # 2. 빌드된 이미지를 띄움
               docker-compose up -d herenow-prod-api
               
-              # Health Check (8002 포트 응답 대기)
+              # Health Check (8002 포트 응답 대기, 최대 60초)
               echo "Waiting for prod server to start..."
               for i in {1..12}; do
+                # /actuator/health 가 없다면 swagger 나 단순히 루트를 찔러봄
                 if curl -s http://localhost:8002/actuator/health > /dev/null || curl -s http://localhost:8002/swagger-ui/index.html > /dev/null; then
                   echo "✅ Production Server (8002) is UP and RUNNING!"
                   break
@@ -112,12 +75,15 @@ jobs:
             # 테스트 서버 배포 (d/test)
             elif [ "${{ github.ref }}" = "refs/heads/d/test" ]; then
               echo "Deploying Test/Dev Environment..."
-              
-              # 새 이미지만 Pull (빌드 X)
-              docker-compose pull herenow-dev-api
+              git fetch origin d/test
+              git checkout -B d/test origin/d/test
+              git reset --hard origin/d/test
+              # 1. 빌드 전용 엔진으로 (캐시 없이, 백그라운드 없이) 순수 빌드만 진행 (Keychain 회피)
+              docker-compose build --no-cache herenow-dev-api
+              # 2. 빌드된 이미지를 띄움
               docker-compose up -d herenow-dev-api
               
-              # Health Check (8001 포트 응답 대기)
+              # Health Check (8001 포트 응답 대기, 최대 60초)
               echo "Waiting for test server to start..."
               for i in {1..12}; do
                 if curl -s http://localhost:8001/actuator/health > /dev/null || curl -s http://localhost:8001/swagger-ui/index.html > /dev/null; then
@@ -133,8 +99,8 @@ jobs:
               done
             fi
             
-            # 빌드 이후 사용되지 않는 댕글링/구버전 이미지 자동 정리
-            docker image prune -f
+            # [HOTFIX 2 정리] 빌드 완료 후 임시 스크립트 삭제
+            rm -rf /tmp/fake-bin
             
-            # [HOTFIX 2 정리] 빌드 완료 후 격리용 DOCKER_CONFIG 임시 폴더 삭제
-            rm -rf $DOCKER_CONFIG
+            # 빌드 이후 사용되지 않는 댕글링 이미지 자동 정리
+            docker image prune -f
