@@ -6,6 +6,7 @@ import com.nsnm.herenow.api.user.v1.dto.GroupJoinRequestDto
 import com.nsnm.herenow.api.user.v1.dto.GroupMemberDto
 import com.nsnm.herenow.api.user.v1.dto.JoinGroupRequest
 import com.nsnm.herenow.api.user.v1.dto.ProcessJoinRequest
+import com.nsnm.herenow.api.user.v1.dto.UpdateGroupNameRequest
 import com.nsnm.herenow.api.user.v1.dto.UserGroupDto
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -13,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -74,5 +76,15 @@ class UserGroupController(
     ) {
         val uid = SecurityContextHolder.getContext().authentication.name
         userGroupService.processJoinRequest(groupId, request.requestId, uid, request.approve)
+    }
+
+    @Operation(summary = "그룹(스페이스) 이름 변경", description = "그룹의 소유자(OWNER)가 그룹의 이름을 변경합니다.")
+    @PutMapping("/{groupId}/name")
+    fun updateGroupName(
+        @PathVariable groupId: String,
+        @RequestBody request: UpdateGroupNameRequest
+    ): UserGroupDto {
+        val uid = SecurityContextHolder.getContext().authentication.name
+        return userGroupService.updateGroupName(groupId, uid, request.groupName)
     }
 }

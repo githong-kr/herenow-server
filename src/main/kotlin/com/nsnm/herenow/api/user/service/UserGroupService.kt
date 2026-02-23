@@ -195,4 +195,24 @@ class UserGroupService(
 
         groupJoinRequestRepository.save(request)
     }
+
+    @Transactional
+    fun updateGroupName(groupId: String, profileId: String, newName: String): UserGroupDto {
+        val group = userGroupRepository.findById(groupId)
+            .orElseThrow { BizException("존재하지 않는 그룹입니다.") }
+
+        if (group.ownerProfileId != profileId) {
+            throw BizException("그룹 소유자만 스페이스 이름을 변경할 수 있습니다.")
+        }
+
+        group.groupName = newName
+        userGroupRepository.save(group)
+
+        return UserGroupDto(
+            groupId = group.groupId,
+            groupName = group.groupName,
+            ownerProfileId = group.ownerProfileId,
+            inviteCode = group.inviteCode
+        )
+    }
 }
