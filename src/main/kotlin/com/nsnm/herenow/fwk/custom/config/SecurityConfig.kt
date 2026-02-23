@@ -51,10 +51,12 @@ class SecurityConfig(
             // H2 Console iFrame 접속 허용
             .headers { headers -> headers.frameOptions { it.disable() } }
 
-        // Supabase Oauth2 리소스 서버 설정 (로컬에서도 항상 토큰 검증 필터는 타도록 활성화)
-        http.oauth2ResourceServer { oauth2 ->
-            oauth2.jwt {}
-            oauth2.authenticationEntryPoint(jwtAuthenticationEntryPoint)
+        if (!isLocal) {
+            // Supabase Oauth2 리소스 서버 설정 (운영/테스트 등 원격 환경에서만 진짜 토큰 검증 필터 활성화)
+            http.oauth2ResourceServer { oauth2 ->
+                oauth2.jwt {}
+                oauth2.authenticationEntryPoint(jwtAuthenticationEntryPoint)
+            }
         }
 
         return http.build()
