@@ -67,6 +67,19 @@ class UserGroupService(
     }
 
     @Transactional(readOnly = true)
+    fun getGroupByInviteCode(inviteCode: String): UserGroupDto {
+        val group = userGroupRepository.findByInviteCode(inviteCode)
+            ?: throw BizException("유효하지 않거나 만료된 초대 코드입니다.")
+        
+        return UserGroupDto(
+            groupId = group.groupId,
+            groupName = group.groupName,
+            ownerProfileId = group.ownerProfileId,
+            inviteCode = group.inviteCode
+        )
+    }
+
+    @Transactional(readOnly = true)
     fun getGroupMembers(groupId: String): List<GroupMemberDto> {
         val members = userGroupMemberRepository.findByGroupId(groupId)
         return members.map {

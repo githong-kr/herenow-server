@@ -41,8 +41,8 @@ class SecurityConfig(
                         }
                     }, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter::class.java)
                 } else {
-                    // 기본 정적 및 Swagger 페이지, 헬스체크 허용, 나머지는 무조건 인증!
-                    it.requestMatchers("/", "/actuator/health", "/api/v1/sample/**", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**", "/v3/api-docs.yaml")
+                    // 기본 정적 및 Swagger 페이지, 헬스체크 허용, 초대 링크/API 접근 허용, 나머지는 무조건 인증!
+                    it.requestMatchers("/", "/actuator/health", "/api/v1/sample/**", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**", "/v3/api-docs.yaml", "/invite/**", "/api/v1/groups/invite/**")
                         .permitAll()
                         .anyRequest().authenticated()
                 }

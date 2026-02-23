@@ -46,6 +46,12 @@ class UserGroupController(
         return userGroupService.getGroupMembers(groupId)
     }
 
+    @Operation(summary = "초대 코드로 그룹 정보 조회 (인증 불필요)", description = "초대 랜딩 페이지 등에서 그룹 이름을 노출할 수 있도록 초대 코드 기반 기본 정보를 반환합니다.")
+    @GetMapping("/invite/{inviteCode}")
+    fun getGroupByInviteCode(@PathVariable inviteCode: String): UserGroupDto {
+        return userGroupService.getGroupByInviteCode(inviteCode)
+    }
+
     @Operation(summary = "초대 코드 갱신", description = "그룹의 소유자(OWNER)가 8자리 단축 초대 코드를 새로 갱신(발급)합니다.")
     @PostMapping("/{groupId}/invite-code")
     fun refreshInviteCode(@PathVariable groupId: String): Map<String, String> {
