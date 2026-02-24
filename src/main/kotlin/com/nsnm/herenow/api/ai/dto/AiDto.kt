@@ -54,7 +54,9 @@ data class AiChatResponse(
 data class GeminiAiOutputFormat(
     val itemName: String = "",
     val categoryName: String = "",
+    val categoryGroup: String = "",
     val locationName: String = "",
+    val locationGroup: String = "",
     val quantity: Int = 1,
     val minQuantity: Int = 0,
     val expiryDate: String = "",

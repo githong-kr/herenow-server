@@ -52,8 +52,8 @@ class AiService(
         val existingCategories = categoryRepository.findByGroupId(groupId).sortedBy { it.displayOrder }
         val existingLocations = locationRepository.findByGroupId(groupId).sortedBy { it.displayOrder }
 
-        val categoriesPromptList = existingCategories.joinToString(", ") { "[\"${it.categoryName}\"]" }
-        val locationsPromptList = existingLocations.joinToString(", ") { "[\"${it.locationName}\"]" }
+        val categoriesPromptList = existingCategories.joinToString(", ") { "[그룹: ${it.categoryGroup ?: "미지정"}, 분류명: ${it.categoryName}]" }
+        val locationsPromptList = existingLocations.joinToString(", ") { "[그룹: ${it.locationGroup ?: "미지정"}, 장소명: ${it.locationName}]" }
 
         // 3. 커스텀 프롬프트 구성 (Vision용 시스템 명령어)
         val promptText = """
@@ -63,16 +63,18 @@ class AiService(
             
             요구사항:
             1. 'itemName': 상품의 구체적인 이름(브랜드가 보이면 포함, 예: '다우니 실내건조 1L')
-            2. 'categoryName': 이 물건의 분류명. 사용자의 카테고리 목록 $categoriesPromptList 중 하나와 완벽히 일치하면 그 이름을 사용하고, 없다면 짤막하고 상식적인 새로운 카테고리명을 제안하세요.
-            3. 'locationName': 이 물건을 보통 어디에 보관하는지. 사용자의 보관 장소 목록 $locationsPromptList 중 하나와 완벽히 일치하면 그 이름을 사용하고, 없다면 짧은 보관 장소명을 제안하세요.
-            4. 'quantity': 육안으로 확인되는 대략적인 물품의 개수 (정수형). 모호하면 1을 주세요.
-            5. 'minQuantity': 재고가 떨어졌을 때 알림을 받을 경고 수량(최소 주문 수량, 정수형). 보통 0 또는 1로 설정하세요.
-            6. 'expiryDate': 이미지에서 유통기한이나 소비기한이 명확하게 보인다면 'YYYY-MM-DD' 형식으로 표기하세요. 음식물과 같이 통상적인 유통기한이나 소비기한이 있다면 알려주세요. 판단하기 어렵다면 빈 문자열.
-            7. 'tags': 이 물건과 관련된 검색 태그들을 1~3개 정도 배열로 제공하세요. (예: ["세탁용품", "다우니"])
-            8. 'memo': 물건 상태나 특징 등 기억할 만한 메모를 1~2문장으로 요약하세요.
+            2. 'categoryName': 이 물건의 소분류 분류명. 사용자의 분류 목록 $categoriesPromptList 을 참고하여 매칭시키되, 없다면 짤막하고 직관적인 '단일 명사' 수준의 새 소분류명을 제안하세요. (예: '선풍기')
+            3. 'categoryGroup': 'categoryName'이 속할 대분류 그룹명. 새 대분류를 제안할 경우 '단일 명사' 위주로 직관적으로 정하되, **절대 'categoryName'과 단어가 중복되지 않게** 하세요. (예: 소분류가 '선풍기'라면 대분류는 '가전' 또는 '전자기기')
+            4. 'locationName': 이 물건을 보관할 상세 장소명. 사용자의 장소 목록 $locationsPromptList 을 참고하여 매칭시키되, 없다면 '단일 명사' 수준의 짧은 장소명을 제안하세요. (예: '서랍')
+            5. 'locationGroup': 'locationName'이 속할 주거 구역/방 이름(대분류). 새 대분류를 제안할 경우 **절대 'locationName'과 단어가 중복되지 않게** '단일 명사'로 정하세요. (예: 상세 장소가 '서랍'이라면 대분류는 '거실' 또는 '안방')
+            6. 'quantity': 육안으로 확인되는 대략적인 물품의 개수 (정수형). 모호하면 1을 주세요.
+            7. 'minQuantity': 재고가 떨어졌을 때 알림을 받을 경고 수량(최소 주문 수량, 정수형). 보통 0 또는 1로 설정하세요.
+            8. 'expiryDate': 이미지에서 음식물 등 명확한 유통기한이나 소비기한이 보인다면 'YYYY-MM-DD' 형식으로 표기하세요. 판단하기 어렵다면 빈 문자열 처리.
+            9. 'tags': 물건의 검색 태그 1~3개. (예: ["세탁용품", "다우니"])
+            10. 'memo': 물건 상태나 특징 등 기억할 만한 메모를 1~2문장으로 짧게 요약하세요.
             
             중요: 응답은 다른 설명 없이 오직 RFC 8259 호환 순수 JSON 포맷으로만 제출하세요.
-            결과 형식: {"itemName": "", "categoryName": "", "locationName": "", "quantity": 1, "minQuantity": 0, "expiryDate": "", "tags": [], "memo": ""}
+            결과 형식: {"itemName": "", "categoryName": "", "categoryGroup": "", "locationName": "", "locationGroup": "", "quantity": 1, "minQuantity": 0, "expiryDate": "", "tags": [], "memo": ""}
         """.trimIndent()
 
         // 4. Gemini 요청 조립
@@ -119,25 +121,34 @@ class AiService(
             throw BizException("AI가 올바른 JSON 포맷을 반환하지 않았습니다: $outputText")
         }
 
-        // 7. 카테고리명 / 장소명 Auto Create 로직
-        var matchedCategoryId = existingCategories.find { it.categoryName == aiOutput.categoryName }?.categoryId
-        var matchedLocationId = existingLocations.find { it.locationName == aiOutput.locationName }?.locationId
+        println("aiOutput : $aiOutput")
+
+        // 7. 카테고리명 / 장소명 Auto Create 로직 (공백 제거 적용)
+        val aiCategoryName = aiOutput.categoryName.trim()
+        val aiLocationName = aiOutput.locationName.trim()
+        val aiCategoryGroup = aiOutput.categoryGroup.trim()
+        val aiLocationGroup = aiOutput.locationGroup.trim()
+
+        var matchedCategoryId = existingCategories.find { it.categoryName == aiCategoryName }?.categoryId
+        var matchedLocationId = existingLocations.find { it.locationName == aiLocationName }?.locationId
 
         // 매칭 실패 시 즉시 자동 생성 (Option B: 기존에 없으면 생성)
-        if (matchedCategoryId == null && aiOutput.categoryName.isNotBlank()) {
+        if (matchedCategoryId == null && aiCategoryName.isNotBlank()) {
             val newCat = CategoryEntity(
                 groupId = groupId,
-                categoryName = aiOutput.categoryName,
+                categoryName = aiCategoryName,
+                categoryGroup = aiCategoryGroup.takeIf { it.isNotBlank() },
                 displayOrder = (existingCategories.maxOfOrNull { it.displayOrder } ?: 0) + 1
             )
             val savedCat = categoryRepository.save(newCat)
             matchedCategoryId = savedCat.categoryId
         }
 
-        if (matchedLocationId == null && aiOutput.locationName.isNotBlank()) {
+        if (matchedLocationId == null && aiLocationName.isNotBlank()) {
             val newLoc = LocationEntity(
                 groupId = groupId,
-                locationName = aiOutput.locationName,
+                locationName = aiLocationName,
+                locationGroup = aiLocationGroup.takeIf { it.isNotBlank() },
                 displayOrder = (existingLocations.maxOfOrNull { it.displayOrder } ?: 0) + 1
             )
             val savedLoc = locationRepository.save(newLoc)
@@ -172,9 +183,15 @@ class AiService(
             "현재 보관함에 등록된 물건이 하나도 없습니다."
         } else {
             items.joinToString("\n") { item ->
-                val categoryName = categories[item.categoryId]?.categoryName ?: "카테고리 없음"
-                val locationName = locations[item.locationId]?.locationName ?: "위치 지정 안됨"
-                "- [${item.itemName}] (분류: $categoryName, 위치: $locationName)수량: ${item.quantity}개, 기록/메모: ${item.memo ?: "없음"}"
+                val category = categories[item.categoryId]
+                val categoryName = category?.categoryName ?: "분류 없음"
+                val categoryGroup = category?.categoryGroup?.let { " ($it)" } ?: ""
+                
+                val location = locations[item.locationId]
+                val locationName = location?.locationName ?: "위치 지정 안됨"
+                val locationGroup = location?.locationGroup?.let { " ($it)" } ?: ""
+                
+                "- [${item.itemName}] (분류: $categoryName$categoryGroup, 위치: $locationName$locationGroup) 수량: ${item.quantity}개, 기록/메모: ${item.memo ?: "없음"}"
             }
         }
 
@@ -191,7 +208,8 @@ class AiService(
             
             지시사항:
             - 오직 위 <InventoryDatabase> 데이터만을 기반으로 질문에 대답하세요.
-            - 물건을 찾으면 어디에 보관되어 있는지, 수량이 얼마나 남았는지 친근하고 짧은 어투로 바로 말해주세요.
+            - 물건을 찾으면 어디에 보관되어 있는지(가능하다면 대분류 구역 위치도 함께), 수량이 얼마나 남았는지 친근하고 짧은 어투로 바로 말해주세요.
+            - 특정 장소(예: 서랍)에 어떤 물건이 있는지 묻는 질문이라면, 해당 장소에 속한 물건들의 목록을 안내해 주세요.
             - 보관함에 없는 물건을 찾으면 "목록에서 찾을 수 없다"고 분명히 말하세요.
             - 사용자가 메모나 특징을 묻는다면 꼼꼼히 확인해서 답변하세요.
             - 대답은 3~4문장 이내로 핵심만, 매우 자연스러운 한국어 구어체(~해요, ~입니다)로 작성하세요. 마크다운 사용(볼드체 등) 가능합니다.
