@@ -8,8 +8,7 @@ import jakarta.persistence.*
 class ItemHistoryEntity(
     
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    val itemHistoryId: String = "",
+    var itemHistoryId: String = java.util.UUID.randomUUID().toString(),
 
     @Column(nullable = false, length = 36)
     val itemId: String,
