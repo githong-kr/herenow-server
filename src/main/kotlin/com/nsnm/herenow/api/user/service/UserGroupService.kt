@@ -228,4 +228,23 @@ class UserGroupService(
             inviteCode = group.inviteCode
         )
     }
+
+    @Transactional
+    fun removeGroupMember(groupId: String, requesterProfileId: String, targetProfileId: String) {
+        val group = userGroupRepository.findById(groupId)
+            .orElseThrow { BizException("존재하지 않는 스페이스입니다.") }
+
+        if (group.ownerProfileId != requesterProfileId) {
+            throw BizException("그룹 소유자만 멤버를 강퇴할 수 있습니다.")
+        }
+
+        if (group.ownerProfileId == targetProfileId) {
+            throw BizException("소유자 스스로를 스페이스에서 강퇴할 수 없습니다.")
+        }
+
+        val member = userGroupMemberRepository.findByProfileIdAndGroupId(targetProfileId, groupId)
+            ?: throw BizException("해당 스페이스의 멤버가 아닙니다.")
+
+        userGroupMemberRepository.delete(member)
+    }
 }

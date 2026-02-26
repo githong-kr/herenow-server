@@ -1,5 +1,6 @@
 package com.nsnm.herenow.api.item.v1.dto
 
+import io.swagger.v3.oas.annotations.media.Schema
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -45,5 +46,18 @@ data class ItemResponse(
     val expiryDate: LocalDate?,
     val memo: String?,
     val tags: List<String>,
-    val photoUrls: List<String>
+    val photoUrls: List<String>,
+    val frstRegTmst: java.time.LocalDateTime? = null,
+    val frstRegName: String? = null,
+    val lastChngTmst: java.time.LocalDateTime? = null,
+    val lastChngName: String? = null
+)
+
+@Schema(description = "아이템 변경 이력 응답 객체")
+data class ItemHistoryResponse(
+    val itemHistoryId: String,
+    val actionType: String,
+    val changes: String?,
+    val actionUserName: String,
+    val tmst: String?
 )

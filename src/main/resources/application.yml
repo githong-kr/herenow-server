@@ -40,6 +40,10 @@ spring:
           # Supabase가 제공하는 공개키(JWKS) 엔드포인트 URL
           jwk-set-uri: https://${TEST_SUPABASE_PROJECT_REF}.supabase.co/auth/v1/.well-known/jwks.json
 
+supabase:
+  url: https://${TEST_SUPABASE_PROJECT_REF}.supabase.co
+  secret-key: ${TEST_SUPABASE_SECRET_KEY}
+
 server:
   port: 8080
 
@@ -81,6 +85,10 @@ spring:
           # Supabase가 제공하는 공개키(JWKS) 엔드포인트 URL
           jwk-set-uri: https://${TEST_SUPABASE_PROJECT_REF}.supabase.co/auth/v1/.well-known/jwks.json
 
+supabase:
+  url: https://${TEST_SUPABASE_PROJECT_REF}.supabase.co
+  secret-key: ${TEST_SUPABASE_SECRET_KEY}
+
 ---
 # =============== PROD (Supabase 운영 환경) ===============
 spring:
@@ -106,3 +114,7 @@ spring:
         jwt:
           # Supabase가 제공하는 공개키(JWKS) 엔드포인트 URL
           jwk-set-uri: https://${PROD_SUPABASE_PROJECT_REF}.supabase.co/auth/v1/.well-known/jwks.json
+
+supabase:
+  url: https://${PROD_SUPABASE_PROJECT_REF}.supabase.co
+  secret-key: ${PROD_SUPABASE_SECRET_KEY}

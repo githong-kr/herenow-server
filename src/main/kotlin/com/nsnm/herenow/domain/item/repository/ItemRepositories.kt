@@ -18,6 +18,9 @@ interface CategoryRepository : JpaRepository<CategoryEntity, String> {
 @Repository
 interface LocationRepository : JpaRepository<LocationEntity, String> {
     fun findByGroupId(groupId: String): List<LocationEntity>
+    
+    @org.springframework.data.jpa.repository.Query("SELECT l.photoUrl FROM LocationEntity l WHERE l.photoUrl IS NOT NULL")
+    fun findAllPhotoUrls(): List<String>
 }
 
 @Repository
@@ -43,4 +46,13 @@ interface ItemPhotoRepository : JpaRepository<ItemPhotoEntity, String> {
     fun findByItemId(itemId: String): List<ItemPhotoEntity>
     fun findByItemIdIn(itemIds: List<String>): List<ItemPhotoEntity>
     fun deleteByItemId(itemId: String)
+
+    @org.springframework.data.jpa.repository.Query("SELECT p.photoUrl FROM ItemPhotoEntity p")
+    fun findAllPhotoUrls(): List<String>
 }
+
+@Repository
+interface ItemHistoryRepository : JpaRepository<com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity, String> {
+    fun findByItemIdOrderByFrstRegTmstDesc(itemId: String): List<com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity>
+}
+

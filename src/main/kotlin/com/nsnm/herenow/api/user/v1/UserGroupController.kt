@@ -11,6 +11,7 @@ import com.nsnm.herenow.api.user.v1.dto.UserGroupDto
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -92,5 +93,15 @@ class UserGroupController(
     ): UserGroupDto {
         val uid = SecurityContextHolder.getContext().authentication.name
         return userGroupService.updateGroupName(groupId, uid, request.groupName)
+    }
+
+    @Operation(summary = "그룹 멤버 강퇴", description = "그룹의 소유자(OWNER)가 특정 멤버를 그룹에서 추방합니다.")
+    @DeleteMapping("/{groupId}/members/{targetProfileId}")
+    fun removeGroupMember(
+        @PathVariable groupId: String,
+        @PathVariable targetProfileId: String
+    ) {
+        val uid = SecurityContextHolder.getContext().authentication.name
+        userGroupService.removeGroupMember(groupId, uid, targetProfileId)
     }
 }

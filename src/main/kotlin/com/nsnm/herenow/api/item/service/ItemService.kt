@@ -29,7 +29,9 @@ class ItemService(
     private val locationRepository: LocationRepository,
     private val tagRepository: TagRepository,
     private val itemTagRepository: ItemTagRepository,
-    private val itemPhotoRepository: ItemPhotoRepository
+    private val itemPhotoRepository: ItemPhotoRepository,
+    private val profileRepository: com.nsnm.herenow.domain.user.repository.ProfileRepository,
+    private val itemHistoryRepository: com.nsnm.herenow.domain.item.repository.ItemHistoryRepository
 ) : BaseService() {
 
     @Transactional(readOnly = true)
@@ -109,6 +111,16 @@ class ItemService(
             savedTagNames.add(tag.tagName)
         }
 
+        // 5. 이력 기록 (CREATE)
+        val creatorName = "알 수 없음"
+        itemHistoryRepository.save(com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity(
+            itemId = savedItem.itemId,
+            groupId = groupId,
+            actionType = "CREATE",
+            changes = "물건 등재",
+            actionUserName = creatorName
+        ))
+
         return ItemResponse(
             itemId = savedItem.itemId,
             itemName = savedItem.itemName,
@@ -121,7 +133,11 @@ class ItemService(
             expiryDate = savedItem.expiryDate,
             memo = savedItem.memo,
             tags = savedTagNames,
-            photoUrls = savedPhotos.map { it.photoUrl }
+            photoUrls = savedPhotos.map { it.photoUrl },
+            frstRegTmst = savedItem.frstRegTmst,
+            frstRegName = savedItem.frstRegGuid?.let { profileRepository.findById(it).orElse(null)?.name },
+            lastChngTmst = savedItem.lastChngTmst,
+            lastChngName = savedItem.lastChngGuid?.let { profileRepository.findById(it).orElse(null)?.name }
         )
     }
 
@@ -179,6 +195,16 @@ class ItemService(
             savedTagNames.add(tag.tagName)
         }
 
+        // 4. 이력 기록 (UPDATE)
+        val updaterName = "알 수 없음"
+        itemHistoryRepository.save(com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity(
+            itemId = savedItem.itemId,
+            groupId = groupId,
+            actionType = "UPDATE",
+            changes = "정보 수정",
+            actionUserName = updaterName
+        ))
+
         return ItemResponse(
             itemId = savedItem.itemId,
             itemName = savedItem.itemName,
@@ -191,7 +217,11 @@ class ItemService(
             expiryDate = savedItem.expiryDate,
             memo = savedItem.memo,
             tags = savedTagNames,
-            photoUrls = savedPhotos.map { it.photoUrl }
+            photoUrls = savedPhotos.map { it.photoUrl },
+            frstRegTmst = savedItem.frstRegTmst,
+            frstRegName = savedItem.frstRegGuid?.let { profileRepository.findById(it).orElse(null)?.name },
+            lastChngTmst = savedItem.lastChngTmst,
+            lastChngName = savedItem.lastChngGuid?.let { profileRepository.findById(it).orElse(null)?.name }
         )
     }
 
@@ -207,6 +237,16 @@ class ItemService(
         
         // 아이템 엔티티 삭제
         itemRepository.delete(itemEntity)
+
+        // 이력 기록 (DELETE) - 이미 삭제되었지만 로그 추적을 위해 저장
+        val deleterName = "알 수 없음"
+        itemHistoryRepository.save(com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity(
+            itemId = itemId,
+            groupId = groupId,
+            actionType = "DELETE",
+            changes = "물건 삭제",
+            actionUserName = deleterName
+        ))
     }
 
     private fun mapToItemResponse(itemEntity: ItemEntity): ItemResponse {
@@ -229,7 +269,25 @@ class ItemService(
             expiryDate = itemEntity.expiryDate,
             memo = itemEntity.memo,
             tags = tags,
-            photoUrls = photoUrls
+            photoUrls = photoUrls,
+            frstRegTmst = itemEntity.frstRegTmst,
+            frstRegName = itemEntity.frstRegGuid?.let { profileRepository.findById(it).orElse(null)?.name },
+            lastChngTmst = itemEntity.lastChngTmst,
+            lastChngName = itemEntity.lastChngGuid?.let { profileRepository.findById(it).orElse(null)?.name }
         )
+    }
+
+    @Transactional(readOnly = true)
+    fun getItemHistory(itemId: String): List<com.nsnm.herenow.api.item.v1.dto.ItemHistoryResponse> {
+        val historyList = itemHistoryRepository.findByItemIdOrderByFrstRegTmstDesc(itemId)
+        return historyList.map {
+            com.nsnm.herenow.api.item.v1.dto.ItemHistoryResponse(
+                itemHistoryId = it.itemHistoryId,
+                actionType = it.actionType,
+                changes = it.changes,
+                actionUserName = it.actionUserName,
+                tmst = it.frstRegTmst?.toString()
+            )
+        }
     }
 }
