@@ -193,7 +193,19 @@ class ItemService(
         }
         val savedItem = itemRepository.save(itemEntity)
 
-        // 2. 사진 정보 업데이트 (기존 삭제 후 재생성)
+        // 2. 사진 정보 업데이트 (기존 내역과 비교 후 재생성)
+        val oldPhotos = itemPhotoRepository.findByItemId(itemId).map { it.photoUrl }
+        val newPhotos = request.photoUrls
+        if (oldPhotos != newPhotos) {
+            val added = newPhotos.count { !oldPhotos.contains(it) }
+            val removed = oldPhotos.count { !newPhotos.contains(it) }
+            if (added > 0 || removed > 0) {
+                val parts = mutableListOf<String>()
+                if (added > 0) parts.add("${added}장 추가")
+                if (removed > 0) parts.add("${removed}장 삭제")
+                changedFields.add("사진: ${parts.joinToString(", ")}")
+            }
+        }
         itemPhotoRepository.deleteByItemId(itemId)
         val savedPhotos = request.photoUrls.mapIndexed { index, url ->
             itemPhotoRepository.save(ItemPhotoEntity(
@@ -204,6 +216,10 @@ class ItemService(
         }
 
         // 3. 태그 정보 업데이트 (기존 매핑 삭제 후 재생성)
+        val oldTagsEntities = itemTagRepository.findByItemId(itemId)
+        val oldTagNames = oldTagsEntities.mapNotNull { tagRepository.findById(it.tagId).orElse(null)?.tagName }
+        val newTagNamesInput = request.tags // 보통 클라이언트에서 tagName 문자열 배열을 넘김
+
         itemTagRepository.deleteByItemId(itemId)
         val savedTagNames = mutableListOf<String>()
         request.tags.forEach { tagNameOrId ->
@@ -218,9 +234,20 @@ class ItemService(
             ))
             savedTagNames.add(tag.tagName)
         }
+        
+        // 태그 변경내역 기록
+        if (oldTagNames.sorted() != savedTagNames.sorted()) {
+            val addedTags = savedTagNames.filter { !oldTagNames.contains(it) }
+            val removedTags = oldTagNames.filter { !savedTagNames.contains(it) }
+            if (addedTags.isNotEmpty() || removedTags.isNotEmpty()) {
+                val parts = mutableListOf<String>()
+                if (addedTags.isNotEmpty()) parts.add("추가(${addedTags.joinToString(", ")})")
+                if (removedTags.isNotEmpty()) parts.add("삭제(${removedTags.joinToString(", ")})")
+                changedFields.add("태그: ${parts.joinToString(", ")}")
+            }
+        }
 
-        // 사진/태그 변경 로직은 덮어쓰기 특성상 단순화하여 추가 기록할 수 있음 (여기서는 기본 정보 변경 위주 추적)
-        val changesText = if (changedFields.isEmpty()) "세부 정보(사진/태그 등) 수정" else changedFields.joinToString("\n")
+        val changesText = if (changedFields.isEmpty()) "세부 정보 유지" else changedFields.joinToString("\n")
 
         itemHistoryRepository.save(com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity(
             itemId = savedItem.itemId,
