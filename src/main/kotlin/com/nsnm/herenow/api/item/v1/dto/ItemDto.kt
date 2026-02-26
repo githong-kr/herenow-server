@@ -57,7 +57,8 @@ data class ItemResponse(
 data class ItemHistoryResponse(
     val itemHistoryId: String,
     val actionType: String,
-    val changes: String?,
-    val actionUserName: String,
+    val title: String,
+    val message: String,
+    val details: List<String>,
     val tmst: String?
 )

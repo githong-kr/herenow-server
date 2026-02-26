@@ -1,5 +1,7 @@
 package com.nsnm.herenow.api.item.service
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.nsnm.herenow.api.item.v1.dto.CreateItemRequest
 import com.nsnm.herenow.api.item.v1.dto.ItemResponse
 import com.nsnm.herenow.api.item.v1.dto.UpdateItemRequest
@@ -115,7 +117,7 @@ class ItemService(
             itemId = savedItem.itemId,
             groupId = groupId,
             actionType = "CREATE",
-            changes = "물건 신규 등재",
+            changes = "물건 신규 등록",
             actionUserId = userId
         ))
 
@@ -152,8 +154,8 @@ class ItemService(
             throw BizException("존재하지 않는 보관장소입니다.")
         }
 
-        // 변경점 추적
-        val changedFields = mutableListOf<String>()
+        // 변경점 추적 (변수 맵핑 기반)
+        val changesMap = mutableMapOf<String, String>()
         
         fun String?.orEmptyText() = this ?: "없음"
         fun java.math.BigDecimal?.orEmptyText() = this?.toString() ?: "없음"
@@ -162,21 +164,21 @@ class ItemService(
         if (itemEntity.categoryId != request.categoryId) {
             val oldCat = itemEntity.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName } ?: "없음"
             val newCat = request.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName } ?: "없음"
-            changedFields.add("카테고리: $oldCat -> $newCat")
+            changesMap["카테고리"] = "$oldCat -> $newCat"
         }
         if (itemEntity.locationId != request.locationId) {
             val oldLoc = itemEntity.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName } ?: "없음"
             val newLoc = request.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName } ?: "없음"
-            changedFields.add("보관장소: $oldLoc -> $newLoc")
+            changesMap["보관장소"] = "$oldLoc -> $newLoc"
         }
-        if (itemEntity.itemName != request.itemName) changedFields.add("이름: ${itemEntity.itemName} -> ${request.itemName}")
-        if (itemEntity.quantity != request.quantity) changedFields.add("수량: ${itemEntity.quantity} -> ${request.quantity}")
-        if (itemEntity.minQuantity != request.minQuantity) changedFields.add("경고수량: ${itemEntity.minQuantity} -> ${request.minQuantity}")
-        if (itemEntity.purchaseDate != request.purchaseDate) changedFields.add("구입일: ${itemEntity.purchaseDate.orEmptyText()} -> ${request.purchaseDate.orEmptyText()}")
-        if (itemEntity.purchasePlace != request.purchasePlace) changedFields.add("구입처: ${itemEntity.purchasePlace.orEmptyText()} -> ${request.purchasePlace.orEmptyText()}")
-        if (itemEntity.price != request.price) changedFields.add("가격: ${itemEntity.price.orEmptyText()} -> ${request.price.orEmptyText()}")
-        if (itemEntity.expiryDate != request.expiryDate) changedFields.add("소비기한: ${itemEntity.expiryDate.orEmptyText()} -> ${request.expiryDate.orEmptyText()}")
-        if (itemEntity.memo != request.memo) changedFields.add("메모: ${itemEntity.memo.orEmptyText()} -> ${request.memo.orEmptyText()}")
+        if (itemEntity.itemName != request.itemName) changesMap["이름"] = "${itemEntity.itemName} -> ${request.itemName}"
+        if (itemEntity.quantity != request.quantity) changesMap["수량"] = "${itemEntity.quantity} -> ${request.quantity}"
+        if (itemEntity.minQuantity != request.minQuantity) changesMap["경고수량"] = "${itemEntity.minQuantity} -> ${request.minQuantity}"
+        if (itemEntity.purchaseDate != request.purchaseDate) changesMap["구입일"] = "${itemEntity.purchaseDate.orEmptyText()} -> ${request.purchaseDate.orEmptyText()}"
+        if (itemEntity.purchasePlace != request.purchasePlace) changesMap["구입처"] = "${itemEntity.purchasePlace.orEmptyText()} -> ${request.purchasePlace.orEmptyText()}"
+        if (itemEntity.price != request.price) changesMap["가격"] = "${itemEntity.price.orEmptyText()} -> ${request.price.orEmptyText()}"
+        if (itemEntity.expiryDate != request.expiryDate) changesMap["소비기한"] = "${itemEntity.expiryDate.orEmptyText()} -> ${request.expiryDate.orEmptyText()}"
+        if (itemEntity.memo != request.memo) changesMap["메모"] = "${itemEntity.memo.orEmptyText()} -> ${request.memo.orEmptyText()}"
 
         // 1. 아이템 정보 업데이트
         itemEntity.apply {
@@ -203,7 +205,7 @@ class ItemService(
                 val parts = mutableListOf<String>()
                 if (added > 0) parts.add("${added}장 추가")
                 if (removed > 0) parts.add("${removed}장 삭제")
-                changedFields.add("사진: ${parts.joinToString(", ")}")
+                changesMap["사진"] = parts.joinToString(", ")
             }
         }
         itemPhotoRepository.deleteByItemId(itemId)
@@ -243,11 +245,12 @@ class ItemService(
                 val parts = mutableListOf<String>()
                 if (addedTags.isNotEmpty()) parts.add("추가(${addedTags.joinToString(", ")})")
                 if (removedTags.isNotEmpty()) parts.add("삭제(${removedTags.joinToString(", ")})")
-                changedFields.add("태그: ${parts.joinToString(", ")}")
+                changesMap["태그"] = parts.joinToString(", ")
             }
         }
 
-        val changesText = if (changedFields.isEmpty()) "세부 정보 유지" else changedFields.joinToString("\n")
+        val mapper = jacksonObjectMapper()
+        val changesText = if (changesMap.isEmpty()) null else mapper.writeValueAsString(changesMap)
 
         itemHistoryRepository.save(com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity(
             itemId = savedItem.itemId,
@@ -295,7 +298,7 @@ class ItemService(
             itemId = itemId,
             groupId = groupId,
             actionType = "DELETE",
-            changes = "물건 삭제",
+            changes = null,
             actionUserId = userId
         ))
     }
@@ -330,14 +333,51 @@ class ItemService(
 
     @Transactional(readOnly = true)
     fun getItemHistory(itemId: String): List<com.nsnm.herenow.api.item.v1.dto.ItemHistoryResponse> {
+        val mapper = jacksonObjectMapper()
         val historyList = itemHistoryRepository.findByItemIdOrderByFrstRegTmstDesc(itemId)
-        return historyList.map {
+        
+        return historyList.map { history ->
+            val actionUserName = profileRepository.findById(history.actionUserId).orElse(null)?.name ?: "알 수 없음"
+            
+            // Server-side message formatting (Templating)
+            val title = when (history.actionType) {
+                "CREATE" -> "물건 등록"
+                "UPDATE" -> "정보 수정"
+                "DELETE" -> "물건 삭제"
+                else -> history.actionType
+            }
+            
+            val message = when (history.actionType) {
+                "CREATE" -> "${actionUserName} 님이 물건을 새로 등록했어요."
+                "UPDATE" -> "${actionUserName} 님이 물건 정보를 아래와 같이 수정했어요."
+                "DELETE" -> "${actionUserName} 님이 물건을 삭제했어요."
+                else -> "${actionUserName} 님이 작업을 수행했어요."
+            }
+
+            val details = mutableListOf<String>()
+            if (history.actionType == "UPDATE" && !history.changes.isNullOrBlank()) {
+                try {
+                    val changesText = history.changes!!.trim()
+                    if (changesText.startsWith("{")) {
+                        // Parses JSON map format
+                        val changesMap: Map<String, String> = mapper.readValue(changesText)
+                        changesMap.forEach { (key, value) -> details.add("$key: $value") }
+                    } else {
+                        // Fallback for old line-separated text format
+                        details.addAll(changesText.split("\n"))
+                    }
+                } catch (e: Exception) {
+                    details.add(history.changes!!)
+                }
+            }
+
             com.nsnm.herenow.api.item.v1.dto.ItemHistoryResponse(
-                itemHistoryId = it.itemHistoryId,
-                actionType = it.actionType,
-                changes = it.changes,
-                actionUserName = profileRepository.findById(it.actionUserId).orElse(null)?.name ?: "알 수 없음",
-                tmst = it.frstRegTmst?.toString()
+                itemHistoryId = history.itemHistoryId,
+                actionType = history.actionType,
+                title = title,
+                message = message,
+                details = details,
+                tmst = history.frstRegTmst?.toString()
             )
         }
     }
