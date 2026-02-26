@@ -53,7 +53,8 @@ class ItemController(
         @PathVariable groupId: String,
         @RequestBody request: CreateItemRequest
     ): ItemResponse {
-        return itemService.createItem(groupId, request)
+        val uid = org.springframework.security.core.context.SecurityContextHolder.getContext().authentication.name
+        return itemService.createItem(groupId, uid, request)
     }
 
     @Operation(summary = "아이템 수정", description = "아이템 정보 및 관련 메타데이터를 갱신합니다.")
@@ -63,7 +64,8 @@ class ItemController(
         @PathVariable itemId: String,
         @RequestBody request: UpdateItemRequest
     ): ItemResponse {
-        return itemService.updateItem(groupId, itemId, request)
+        val uid = org.springframework.security.core.context.SecurityContextHolder.getContext().authentication.name
+        return itemService.updateItem(groupId, uid, itemId, request)
     }
 
     @Operation(summary = "아이템 삭제", description = "아이템과 연관된 태그, 사진 정보를 함께 삭제합니다.")
@@ -72,6 +74,7 @@ class ItemController(
         @PathVariable groupId: String,
         @PathVariable itemId: String
     ) {
-        itemService.deleteItem(groupId, itemId)
+        val uid = org.springframework.security.core.context.SecurityContextHolder.getContext().authentication.name
+        itemService.deleteItem(groupId, uid, itemId)
     }
 }

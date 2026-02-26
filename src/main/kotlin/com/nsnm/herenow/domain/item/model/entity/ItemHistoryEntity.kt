@@ -22,7 +22,8 @@ class ItemHistoryEntity(
     @Column(columnDefinition = "TEXT")
     val changes: String? = null, // 변경 내용을 요약하는 JSON 텍스트 등 (선택적 사용)
     
-    @Column(nullable = false)
-    val actionUserName: String = "알 수 없음"
+    @Column(nullable = false, length = 36)
+    val actionUserId: String 
+
 
 ) : BaseEntity()

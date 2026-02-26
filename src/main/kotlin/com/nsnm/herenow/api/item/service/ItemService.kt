@@ -19,7 +19,6 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.UUID
 import com.nsnm.herenow.fwk.core.base.BaseService
 
 @Service
@@ -56,7 +55,7 @@ class ItemService(
     }
 
     @Transactional
-    fun createItem(groupId: String, request: CreateItemRequest): ItemResponse {
+    fun createItem(groupId: String, userId: String, request: CreateItemRequest): ItemResponse {
         // 1. 참조 데이터 유효성 검증
         if (request.categoryId != null && !categoryRepository.existsById(request.categoryId)) {
             throw BizException("존재하지 않는 카테고리입니다.")
@@ -112,13 +111,12 @@ class ItemService(
         }
 
         // 5. 이력 기록 (CREATE)
-        val creatorName = "알 수 없음"
         itemHistoryRepository.save(com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity(
             itemId = savedItem.itemId,
             groupId = groupId,
             actionType = "CREATE",
-            changes = "물건 등재",
-            actionUserName = creatorName
+            changes = "물건 신규 등재",
+            actionUserId = userId
         ))
 
         return ItemResponse(
@@ -142,7 +140,7 @@ class ItemService(
     }
 
     @Transactional
-    fun updateItem(groupId: String, itemId: String, request: UpdateItemRequest): ItemResponse {
+    fun updateItem(groupId: String, userId: String, itemId: String, request: UpdateItemRequest): ItemResponse {
         val itemEntity = itemRepository.findById(itemId)
             .filter { it.groupId == groupId }
             .orElseThrow { BizException("존재하지 않거나 권한이 없는 아이템입니다.") }
@@ -153,6 +151,32 @@ class ItemService(
         if (request.locationId != null && !locationRepository.existsById(request.locationId)) {
             throw BizException("존재하지 않는 보관장소입니다.")
         }
+
+        // 변경점 추적
+        val changedFields = mutableListOf<String>()
+        
+        fun String?.orEmptyText() = this ?: "없음"
+        fun java.math.BigDecimal?.orEmptyText() = this?.toString() ?: "없음"
+        fun java.time.LocalDate?.orEmptyText() = this?.toString() ?: "없음"
+
+        if (itemEntity.categoryId != request.categoryId) {
+            val oldCat = itemEntity.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName } ?: "없음"
+            val newCat = request.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName } ?: "없음"
+            changedFields.add("카테고리: $oldCat -> $newCat")
+        }
+        if (itemEntity.locationId != request.locationId) {
+            val oldLoc = itemEntity.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName } ?: "없음"
+            val newLoc = request.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName } ?: "없음"
+            changedFields.add("보관장소: $oldLoc -> $newLoc")
+        }
+        if (itemEntity.itemName != request.itemName) changedFields.add("이름: ${itemEntity.itemName} -> ${request.itemName}")
+        if (itemEntity.quantity != request.quantity) changedFields.add("수량: ${itemEntity.quantity} -> ${request.quantity}")
+        if (itemEntity.minQuantity != request.minQuantity) changedFields.add("경고수량: ${itemEntity.minQuantity} -> ${request.minQuantity}")
+        if (itemEntity.purchaseDate != request.purchaseDate) changedFields.add("구입일: ${itemEntity.purchaseDate.orEmptyText()} -> ${request.purchaseDate.orEmptyText()}")
+        if (itemEntity.purchasePlace != request.purchasePlace) changedFields.add("구입처: ${itemEntity.purchasePlace.orEmptyText()} -> ${request.purchasePlace.orEmptyText()}")
+        if (itemEntity.price != request.price) changedFields.add("가격: ${itemEntity.price.orEmptyText()} -> ${request.price.orEmptyText()}")
+        if (itemEntity.expiryDate != request.expiryDate) changedFields.add("소비기한: ${itemEntity.expiryDate.orEmptyText()} -> ${request.expiryDate.orEmptyText()}")
+        if (itemEntity.memo != request.memo) changedFields.add("메모: ${itemEntity.memo.orEmptyText()} -> ${request.memo.orEmptyText()}")
 
         // 1. 아이템 정보 업데이트
         itemEntity.apply {
@@ -195,14 +219,15 @@ class ItemService(
             savedTagNames.add(tag.tagName)
         }
 
-        // 4. 이력 기록 (UPDATE)
-        val updaterName = "알 수 없음"
+        // 사진/태그 변경 로직은 덮어쓰기 특성상 단순화하여 추가 기록할 수 있음 (여기서는 기본 정보 변경 위주 추적)
+        val changesText = if (changedFields.isEmpty()) "세부 정보(사진/태그 등) 수정" else changedFields.joinToString("\n")
+
         itemHistoryRepository.save(com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity(
             itemId = savedItem.itemId,
             groupId = groupId,
             actionType = "UPDATE",
-            changes = "정보 수정",
-            actionUserName = updaterName
+            changes = changesText,
+            actionUserId = userId
         ))
 
         return ItemResponse(
@@ -226,7 +251,7 @@ class ItemService(
     }
 
     @Transactional
-    fun deleteItem(groupId: String, itemId: String) {
+    fun deleteItem(groupId: String, userId: String, itemId: String) {
         val itemEntity = itemRepository.findById(itemId)
             .filter { it.groupId == groupId }
             .orElseThrow { BizException("존재하지 않거나 권한이 없는 아이템입니다.") }
@@ -239,13 +264,12 @@ class ItemService(
         itemRepository.delete(itemEntity)
 
         // 이력 기록 (DELETE) - 이미 삭제되었지만 로그 추적을 위해 저장
-        val deleterName = "알 수 없음"
         itemHistoryRepository.save(com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity(
             itemId = itemId,
             groupId = groupId,
             actionType = "DELETE",
             changes = "물건 삭제",
-            actionUserName = deleterName
+            actionUserId = userId
         ))
     }
 
@@ -285,7 +309,7 @@ class ItemService(
                 itemHistoryId = it.itemHistoryId,
                 actionType = it.actionType,
                 changes = it.changes,
-                actionUserName = it.actionUserName,
+                actionUserName = profileRepository.findById(it.actionUserId).orElse(null)?.name ?: "알 수 없음",
                 tmst = it.frstRegTmst?.toString()
             )
         }

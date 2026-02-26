@@ -46,8 +46,24 @@ object CustomContextUtil {
         }
         ca.remoteIp = convertToIPv4(clientIp)
 
-        ca.isLogin = false
-        log.warn("인증 제외 (임시)")
+        // Spring Security 인증 정보 연동
+        val authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().authentication
+        if (authentication != null && authentication.isAuthenticated && authentication.name != "anonymousUser") {
+            ca.isLogin = true
+            context.user.userId = authentication.name
+            context.user.isAuthenticated = true
+            
+            // JWT 토큰인 경우 Claims 추출하여 공통부(ComUser) 보강
+            if (authentication is org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken) {
+                val claims = authentication.token.claims
+                context.user.userNm = (claims["name"] ?: claims["email"] ?: claims["preferred_username"] ?: "").toString()
+                context.user.userRole = (claims["role"] ?: claims["user_role"] ?: "").toString()
+                context.user.authToken = authentication.token.tokenValue
+            }
+        } else {
+            ca.isLogin = false
+            context.user.isAuthenticated = false
+        }
 
         context.headers = req.headerNames.toList().filterNot { it.equals("cookie", true) || it.equals("bot", true) }
             .associateWith { it ->
