@@ -6,9 +6,11 @@ import com.nsnm.herenow.domain.group.model.enums.GroupRole
 import com.nsnm.herenow.domain.group.repository.UserGroupMemberRepository
 import com.nsnm.herenow.domain.group.repository.UserGroupRepository
 import com.nsnm.herenow.domain.item.model.entity.CategoryEntity
+import com.nsnm.herenow.domain.item.model.entity.ItemCommentEntity
 import com.nsnm.herenow.domain.item.model.entity.ItemEntity
 import com.nsnm.herenow.domain.item.model.entity.LocationEntity
 import com.nsnm.herenow.domain.item.repository.CategoryRepository
+import com.nsnm.herenow.domain.item.repository.ItemCommentRepository
 import com.nsnm.herenow.domain.item.repository.ItemRepository
 import com.nsnm.herenow.domain.item.repository.LocationRepository
 import com.nsnm.herenow.domain.user.model.entity.ProfileEntity
@@ -30,7 +32,8 @@ class DummyDataInitializer(
     private val userGroupMemberRepository: UserGroupMemberRepository,
     private val categoryRepository: CategoryRepository,
     private val locationRepository: LocationRepository,
-    private val itemRepository: ItemRepository
+    private val itemRepository: ItemRepository,
+    private val itemCommentRepository: ItemCommentRepository
 ) : ApplicationRunner {
 
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -52,6 +55,13 @@ class DummyDataInitializer(
             marketingConsent = true
         )
 
+        val dummyMemberUid = "dummy-uid-5678"
+        val memberProfile = ProfileEntity(
+            profileId = dummyMemberUid,
+            name = "테스트 모임원",
+            marketingConsent = true
+        )
+
         // 2. 더미 그룹 생성
         val group = UserGroupEntity(
             groupName = "우리집 스페이스",
@@ -68,6 +78,16 @@ class DummyDataInitializer(
             role = GroupRole.OWNER
         )
         userGroupMemberRepository.save(member)
+
+        memberProfile.representativeGroupId = group.groupId
+        profileRepository.save(memberProfile)
+
+        val normalMember = UserGroupMemberEntity(
+            groupId = group.groupId,
+            profileId = dummyMemberUid,
+            role = GroupRole.MEMBER
+        )
+        userGroupMemberRepository.save(normalMember)
 
         val groupId = group.groupId
 
@@ -142,8 +162,40 @@ class DummyDataInitializer(
             )
         }
 
-        itemRepository.saveAll(items)
+        val savedItems = itemRepository.saveAll(items)
 
-        log.info("Dummy data initialization completed successfully! Created dummy user: $dummyUid with ${items.size} items.")
+        // 6. 더미 코멘트(방명록) 생성
+        if (savedItems.isNotEmpty()) {
+            val comments = mutableListOf<ItemCommentEntity>()
+            // 첫 번째 아이템에 대화형 코멘트 추가
+            val targetItem = savedItems[0]
+            comments.add(ItemCommentEntity(
+                itemId = targetItem.itemId,
+                groupId = groupId,
+                writerId = dummyUid,
+                content = "우유 1개 꺼내먹음!"
+            ))
+            comments.add(ItemCommentEntity(
+                itemId = targetItem.itemId,
+                groupId = groupId,
+                writerId = dummyMemberUid,
+                content = "앗 내일 내가 사올게 ㅎㅎ"
+            ))
+            
+            // 타이레놀(또는 다른 임의 아이템)에 코멘트 추가
+            val medItem = savedItems.find { it.itemName == "타이레놀" }
+            if (medItem != null) {
+                comments.add(ItemCommentEntity(
+                    itemId = medItem.itemId,
+                    groupId = groupId,
+                    writerId = dummyMemberUid,
+                    content = "머리아파서 한 알 먹었어~"
+                ))
+            }
+            
+            itemCommentRepository.saveAll(comments)
+        }
+
+        log.info("Dummy data initialization completed successfully! Created dummy user: \$dummyUid with \${items.size} items.")
     }
 }
