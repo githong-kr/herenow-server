@@ -249,4 +249,108 @@ class AiService(
 
         return AiChatResponse(answer = answerText)
     }
+
+    /**
+     * App Actions (음성 명령) 처리 로직
+     */
+    @Transactional
+    fun executeVoiceCommand(groupId: String, request: AiVoiceCommandRequest): AiVoiceCommandResponse {
+        if (geminiApiKey.isBlank()) {
+            throw BizException("제미나이 API 키가 서버에 설정되어 있지 않습니다.")
+        }
+
+        // 1. 현재 사용자 보관함 전체 스냅샷 조회 (단축 번호 포함)
+        val items = itemRepository.findByGroupId(groupId)
+        
+        val inventoryContext = if (items.isEmpty()) {
+            "보관함에 물건이 없습니다."
+        } else {
+            items.joinToString("\n") { item ->
+                "ID: ${item.itemId}, 단축번호(shortcutNumber): ${item.shortcutNumber ?: "없음"}, 이름: ${item.itemName}, 현재수량: ${item.quantity}개"
+            }
+        }
+
+        // 2. Gemini에게 DB 수정을 위한 파라미터(JSON)를 강제하는 프롬프트 작성
+        val promptText = """
+            당신은 스마트 인벤토리 앱의 데이터베이스 수정 AI입니다.
+            사용자가 음성으로 보관함 물품의 수량을 변경하거나 삭제하라는 명령을 내렸습니다.
+            <명령> ${request.message} </명령>
+            
+            <현재_보관함_상태>
+            $inventoryContext
+            </현재_보관함_상태>
+            
+            명령을 분석하여 어떤 물건(ID)의 수량을 어떻게 바꿀지 정확히 1개만 택해서 JSON으로 출력하세요.
+            (단축번호나 이름의 유사도로 추론하세요)
+            
+            출력 포맷 (반드시 JSON만 출력):
+            {
+              "targetItemId": "", // 변경할 물건의 ID 문자열 (찾지 못한 경우 null)
+              "resultingQuantity": 0, // 연산이 끝난 후 최종 반영될 수량 (예: 현재 3개인데 '하나 썼어'라면 2). 수량이 0 이하라면 0으로 세팅.
+              "isDelete": false, // 사용자가 아예 삭제하라고 명시적으로 지시한 경우만 true
+              "message": "" // 사용자에게 들려줄 친절한 한국어 응답 1문장 (예: '우유(1번) 수량을 1개 뺐어요.')
+            }
+        """.trimIndent()
+
+        val geminiReq = GeminiRequest(
+            contents = listOf(
+                GeminiContent(
+                    parts = listOf(GeminiPart(text = promptText))
+                )
+            ),
+            generationConfig = GeminiGenerationConfig() // responseMimeType = application/json
+        )
+
+        val headers = HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON }
+        val httpEntity = HttpEntity(geminiReq, headers)
+
+        // 3. API 전송
+        val response = try {
+            restTemplate.exchange(
+                GEMINI_API_URL + geminiApiKey,
+                HttpMethod.POST,
+                httpEntity,
+                GeminiResponse::class.java
+            ).body ?: throw BizException("AI 응답이 비어있습니다.")
+        } catch (e: Exception) {
+            throw BizException("음성 명령 처리 API 호출 중 오류가 발생했습니다: ${e.message}")
+        }
+
+        if (response.error != null) {
+            throw BizException(response.error.message ?: "알 수 없는 AI 오류")
+        }
+
+        val outputText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+            ?: throw BizException("AI 결과 텍스트를 추출할 수 없습니다.")
+
+        data class VoiceCommandDecision(
+            val targetItemId: String?,
+            val resultingQuantity: Int,
+            val isDelete: Boolean,
+            val message: String
+        )
+
+        val decision: VoiceCommandDecision = try {
+            objectMapper.readValue(outputText)
+        } catch (e: Exception) {
+            throw BizException("AI가 수행할 명령을 이해하지 못했습니다: $outputText")
+        }
+
+        if (decision.targetItemId == null) {
+             return AiVoiceCommandResponse(responseMessage = decision.message.ifBlank { "해당하는 물건을 보관함에서 찾을 수 없어요." })
+        }
+
+        // 5. 실제 DB 트랜잭션 수행
+        val targetItem = itemRepository.findById(decision.targetItemId).orElse(null)
+            ?: return AiVoiceCommandResponse(responseMessage = "지정된 물건이 이미 삭제되었거나 존재하지 않습니다.")
+
+        if (decision.isDelete) {
+            itemRepository.delete(targetItem)
+        } else {
+            targetItem.quantity = decision.resultingQuantity.coerceAtLeast(0)
+            itemRepository.save(targetItem)
+        }
+
+        return AiVoiceCommandResponse(responseMessage = decision.message)
+    }
 }

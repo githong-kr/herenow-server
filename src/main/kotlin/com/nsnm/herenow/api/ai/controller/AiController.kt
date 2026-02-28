@@ -31,4 +31,13 @@ class AiController(
     ): AiChatResponse {
         return aiService.chatWithInventory(groupId, request)
     }
+
+    @Operation(summary = "음성 제어 명령 (App Actions)", description = "Google Assistant 등을 통해 들어온 사용자의 자연어 명령을 분석하여, 보관함 데이터(수량 조절 등)를 직접 수정하고 결과를 텍스트로 반환합니다.")
+    @PostMapping("/voice-command")
+    fun executeVoiceCommand(
+        @PathVariable groupId: String,
+        @RequestBody request: AiVoiceCommandRequest
+    ): AiVoiceCommandResponse {
+        return aiService.executeVoiceCommand(groupId, request)
+    }
 }

@@ -49,6 +49,22 @@ data class AiChatResponse(
 )
 
 /**
+ * 프론트엔드가 백엔드로 보내는 음성 명령 (App Actions) 요청
+ */
+data class AiVoiceCommandRequest(
+    @Schema(description = "음성 인식된 사용자의 발화 텍스트 (명령어)", example = "1번 물건 하나 빼줘")
+    val message: String
+)
+
+/**
+ * 음성 명령 실행 완료 후 프론트엔드에 응답할 결과
+ */
+data class AiVoiceCommandResponse(
+    @Schema(description = "명령 수행 결과 메시지", example = "우유(1번) 수량을 1개 뺐어요.")
+    val responseMessage: String
+)
+
+/**
  * AI가 반환할 순수 JSON Schema 모델 (내부 처리용)
  */
 data class GeminiAiOutputFormat(
