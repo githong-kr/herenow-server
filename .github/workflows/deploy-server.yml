@@ -103,4 +103,5 @@ jobs:
             rm -rf /tmp/fake-bin
             
             # 빌드 이후 사용되지 않는 댕글링 이미지 자동 정리
-            docker image prune -f
+            docker system prune -af
+            docker builder prune -af
