@@ -247,4 +247,34 @@ class UserGroupService(
 
         userGroupMemberRepository.delete(member)
     }
+
+    @Transactional
+    fun delegateOwner(groupId: String, requesterProfileId: String, targetProfileId: String) {
+        val group = userGroupRepository.findById(groupId)
+            .orElseThrow { BizException("존재하지 않는 스페이스입니다.") }
+
+        if (group.ownerProfileId != requesterProfileId) {
+            throw BizException("그룹 소유자만 방장 권한을 위임할 수 있습니다.")
+        }
+
+        if (group.ownerProfileId == targetProfileId) {
+            throw BizException("이미 방장입니다.")
+        }
+
+        val currentOwnerMember = userGroupMemberRepository.findByProfileIdAndGroupId(requesterProfileId, groupId)
+            ?: throw BizException("현재 멤버 정보를 찾을 수 없습니다.")
+
+        val targetMember = userGroupMemberRepository.findByProfileIdAndGroupId(targetProfileId, groupId)
+            ?: throw BizException("위임 대상 멤버가 스페이스에 존재하지 않습니다.")
+
+        // 1. 소유권 이전
+        group.ownerProfileId = targetProfileId
+        userGroupRepository.save(group)
+
+        // 2. 권한 변경 (기존 OWNER -> MEMBER, 대상 MEMBER -> OWNER)
+        currentOwnerMember.role = GroupRole.MEMBER
+        targetMember.role = GroupRole.OWNER
+
+        userGroupMemberRepository.saveAll(listOf(currentOwnerMember, targetMember))
+    }
 }

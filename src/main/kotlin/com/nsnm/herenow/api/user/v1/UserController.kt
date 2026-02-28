@@ -8,6 +8,7 @@ import com.nsnm.herenow.api.user.v1.dto.UserRegistrationResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -56,5 +57,12 @@ class UserController(
     ): UserRegistrationResponse {
         val uid = SecurityContextHolder.getContext().authentication.name
         return userService.updateProfile(uid, request)
+    }
+
+    @Operation(summary = "회원 탈퇴", description = "로그인한 사용자의 모든 정보(프로필, 구성원, 빈 그룹)를 파기합니다. 방장인 스페이스에 다른 멤버가 있다면 예외를 반환합니다.")
+    @DeleteMapping("/me")
+    fun withdrawAccount() {
+        val uid = SecurityContextHolder.getContext().authentication.name
+        userService.withdrawAccount(uid)
     }
 }

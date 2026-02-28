@@ -104,4 +104,14 @@ class UserGroupController(
         val uid = SecurityContextHolder.getContext().authentication.name
         userGroupService.removeGroupMember(groupId, uid, targetProfileId)
     }
+
+    @Operation(summary = "그룹 방장 위임", description = "그룹의 소유자(OWNER)가 그룹의 다른 멤버에게 방장 권한을 위임합니다.")
+    @PutMapping("/{groupId}/members/{targetProfileId}/delegate-owner")
+    fun delegateOwner(
+        @PathVariable groupId: String,
+        @PathVariable targetProfileId: String
+    ) {
+        val uid = SecurityContextHolder.getContext().authentication.name
+        userGroupService.delegateOwner(groupId, uid, targetProfileId)
+    }
 }

@@ -145,4 +145,37 @@ class UserService(
         profile.representativeGroupId = groupId
         profileRepository.save(profile)
     }
+
+    /**
+     * 회원 탈퇴 (Hard Delete)
+     * - 자신이 속한 모든 그룹의 멤버십을 해제/제거
+     * - 방장(OWNER)인 스페이스 검사: 본인 외 다른 멤버가 있으면 예외 발생 (위임 필요), 혼자면 그룹 폭파
+     * - 마지막으로 프로필 엔티티를 삭제
+     */
+    @Transactional
+    fun withdrawAccount(profileId: String) {
+        val members = userGroupMemberRepository.findByProfileId(profileId)
+
+        for (member in members) {
+            if (member.role == GroupRole.OWNER) {
+                // 이 그룹에 다른 멤버가 있는지 확인
+                val groupMembers = userGroupMemberRepository.findByGroupId(member.groupId)
+                if (groupMembers.size > 1) {
+                    val group = userGroupRepository.findById(member.groupId).orElse(null)
+                    val groupName = group?.groupName ?: "알 수 없는 스페이스"
+                    throw BizException("'$groupName'의 방장입니다. 다른 멤버에게 권한을 위임한 후 탈퇴해 주세요.")
+                } else {
+                    // 혼자 있는 그룹이면 그룹 자체를 삭제
+                    userGroupMemberRepository.delete(member)
+                    userGroupRepository.deleteById(member.groupId)
+                    continue
+                }
+            }
+            // MEMBER 인 경우 단순 탈퇴 (멤버십 삭제)
+            userGroupMemberRepository.delete(member)
+        }
+
+        // 프로필(UserEntity) 파기
+        profileRepository.deleteById(profileId)
+    }
 }
