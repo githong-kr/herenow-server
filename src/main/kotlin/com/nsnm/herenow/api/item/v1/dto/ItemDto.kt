@@ -15,6 +15,7 @@ data class CreateItemRequest(
     val price: BigDecimal? = null,
     val expiryDate: LocalDate? = null,
     val memo: String? = null,
+    val shortcutNumber: Int? = null,
     val tags: List<String> = emptyList(), // 태그명 또는 ID 리스트
     val photoUrls: List<String> = emptyList() // 첨부될 사진 경로 리스트 
 )
@@ -30,6 +31,7 @@ data class UpdateItemRequest(
     val price: BigDecimal? = null,
     val expiryDate: LocalDate? = null,
     val memo: String? = null,
+    val shortcutNumber: Int? = null,
     val tags: List<String> = emptyList(),
     val photoUrls: List<String> = emptyList()
 )
@@ -41,10 +43,12 @@ data class ItemResponse(
     val categoryName: String?,
     val locationId: String?,
     val locationName: String?,
+    val locationPhotoUrl: String? = null,
     val quantity: Int,
     val minQuantity: Int,
     val expiryDate: LocalDate?,
     val memo: String?,
+    val shortcutNumber: Int? = null,
     val tags: List<String>,
     val photoUrls: List<String>,
     val frstRegTmst: java.time.LocalDateTime? = null,

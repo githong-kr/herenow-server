@@ -78,7 +78,8 @@ class ItemService(
             purchasePlace = request.purchasePlace,
             price = request.price,
             expiryDate = request.expiryDate,
-            memo = request.memo
+            memo = request.memo,
+            shortcutNumber = request.shortcutNumber
         )
         val savedItem = itemRepository.save(itemEntity)
 
@@ -128,10 +129,12 @@ class ItemService(
             categoryName = savedItem.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName },
             locationId = savedItem.locationId,
             locationName = savedItem.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName },
+            locationPhotoUrl = savedItem.locationId?.let { locationRepository.findById(it).orElse(null)?.photoUrl },
             quantity = savedItem.quantity,
             minQuantity = savedItem.minQuantity,
             expiryDate = savedItem.expiryDate,
             memo = savedItem.memo,
+            shortcutNumber = savedItem.shortcutNumber,
             tags = savedTagNames,
             photoUrls = savedPhotos.map { it.photoUrl },
             frstRegTmst = savedItem.frstRegTmst,
@@ -179,6 +182,7 @@ class ItemService(
         if (itemEntity.price != request.price) changesMap["가격"] = "${itemEntity.price.orEmptyText()} -> ${request.price.orEmptyText()}"
         if (itemEntity.expiryDate != request.expiryDate) changesMap["소비기한"] = "${itemEntity.expiryDate.orEmptyText()} -> ${request.expiryDate.orEmptyText()}"
         if (itemEntity.memo != request.memo) changesMap["메모"] = "${itemEntity.memo.orEmptyText()} -> ${request.memo.orEmptyText()}"
+        if (itemEntity.shortcutNumber != request.shortcutNumber) changesMap["즐겨찾기번호"] = "${itemEntity.shortcutNumber ?: "없음"} -> ${request.shortcutNumber ?: "없음"}"
 
         // 1. 아이템 정보 업데이트
         itemEntity.apply {
@@ -192,6 +196,7 @@ class ItemService(
             price = request.price
             expiryDate = request.expiryDate
             memo = request.memo
+            shortcutNumber = request.shortcutNumber
         }
         val savedItem = itemRepository.save(itemEntity)
 
@@ -267,10 +272,12 @@ class ItemService(
             categoryName = savedItem.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName },
             locationId = savedItem.locationId,
             locationName = savedItem.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName },
+            locationPhotoUrl = savedItem.locationId?.let { locationRepository.findById(it).orElse(null)?.photoUrl },
             quantity = savedItem.quantity,
             minQuantity = savedItem.minQuantity,
             expiryDate = savedItem.expiryDate,
             memo = savedItem.memo,
+            shortcutNumber = savedItem.shortcutNumber,
             tags = savedTagNames,
             photoUrls = savedPhotos.map { it.photoUrl },
             frstRegTmst = savedItem.frstRegTmst,
@@ -318,10 +325,12 @@ class ItemService(
             categoryName = itemEntity.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName },
             locationId = itemEntity.locationId,
             locationName = itemEntity.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName },
+            locationPhotoUrl = itemEntity.locationId?.let { locationRepository.findById(it).orElse(null)?.photoUrl },
             quantity = itemEntity.quantity,
             minQuantity = itemEntity.minQuantity,
             expiryDate = itemEntity.expiryDate,
             memo = itemEntity.memo,
+            shortcutNumber = itemEntity.shortcutNumber,
             tags = tags,
             photoUrls = photoUrls,
             frstRegTmst = itemEntity.frstRegTmst,

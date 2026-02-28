@@ -39,5 +39,7 @@ class ItemEntity(
     
     var expiryDate: LocalDate? = null,
     
-    var memo: String? = null
+    var memo: String? = null,
+
+    var shortcutNumber: Int? = null
 ) : BaseEntity()
