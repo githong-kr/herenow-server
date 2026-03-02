@@ -23,7 +23,8 @@ class UserGroupService(
     private val userGroupRepository: UserGroupRepository,
     private val userGroupMemberRepository: UserGroupMemberRepository,
     private val groupJoinRequestRepository: GroupJoinRequestRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val notificationService: com.nsnm.herenow.api.notification.service.NotificationService
 ) : BaseService() {
 
     @Transactional
@@ -201,6 +202,19 @@ class UserGroupService(
                     role = GroupRole.MEMBER
                 )
                 userGroupMemberRepository.save(newMember)
+
+                // 알림 발송 (해당 그룹 멤버 전체, 대상자 제외)
+                val targetProfileIds = userGroupMemberRepository.findByGroupId(group.groupId)
+                    .filter { it.profileId != request.profileId }
+                    .map { it.profileId }
+                val newMemberName = profileRepository.findById(request.profileId).orElse(null)?.name ?: "새 멤버"
+                notificationService.sendNotification(
+                    profileIds = targetProfileIds,
+                    title = "스페이스 멤버 참여",
+                    body = "\${newMemberName}님이 '\${group.groupName}' 스페이스에 합류했어요.",
+                    type = com.nsnm.herenow.lib.model.entity.NotificationType.GROUP_MEMBER_JOINED,
+                    targetId = group.groupId
+                )
             }
         } else {
             request.status = JoinRequestStatus.REJECTED
@@ -245,7 +259,21 @@ class UserGroupService(
         val member = userGroupMemberRepository.findByProfileIdAndGroupId(targetProfileId, groupId)
             ?: throw BizException("해당 스페이스의 멤버가 아닙니다.")
 
+        val memberName = profileRepository.findById(targetProfileId).orElse(null)?.name ?: "멤버"
+
         userGroupMemberRepository.delete(member)
+
+        // 알림 발송 (해당 그룹 멤버 전체, 대상자 제외)
+        val targetProfileIds = userGroupMemberRepository.findByGroupId(group.groupId)
+            .filter { it.profileId != targetProfileId }
+            .map { it.profileId }
+        notificationService.sendNotification(
+            profileIds = targetProfileIds,
+            title = "스페이스 멤버 퇴장",
+            body = "\${memberName}님이 '\${group.groupName}' 스페이스에서 나갔습니다.",
+            type = com.nsnm.herenow.lib.model.entity.NotificationType.GROUP_MEMBER_REMOVED,
+            targetId = group.groupId
+        )
     }
 
     @Transactional

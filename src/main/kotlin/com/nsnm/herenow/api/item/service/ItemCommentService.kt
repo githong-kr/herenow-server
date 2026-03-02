@@ -16,7 +16,9 @@ import org.springframework.transaction.annotation.Transactional
 class ItemCommentService(
     private val itemCommentRepository: ItemCommentRepository,
     private val itemRepository: ItemRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val notificationService: com.nsnm.herenow.api.notification.service.NotificationService,
+    private val userGroupMemberRepository: com.nsnm.herenow.domain.group.repository.UserGroupMemberRepository
 ) : BaseService() {
 
     @Transactional(readOnly = true)
@@ -57,6 +59,19 @@ class ItemCommentService(
         
         comment = itemCommentRepository.save(comment)
         val writerProfile = profileRepository.findById(writerId).orElse(null)
+
+        // 알림 발송 (해당 그룹 멤버 전체, 본인 제외)
+        val targetProfileIds = userGroupMemberRepository.findByGroupId(groupId)
+            .filter { it.profileId != writerId }
+            .map { it.profileId }
+        val actionUserName = writerProfile?.name ?: "누군가"
+        notificationService.sendNotification(
+            profileIds = targetProfileIds,
+            title = "새 댓글 코멘트",
+            body = "\${actionUserName}님이 '\${item.itemName}'에 방명록을 남겼어요.",
+            type = com.nsnm.herenow.lib.model.entity.NotificationType.COMMENT_ADDED,
+            targetId = itemId
+        )
 
         return ItemCommentResponse(
             commentId = comment.commentId,

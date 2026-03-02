@@ -32,7 +32,9 @@ class ItemService(
     private val itemTagRepository: ItemTagRepository,
     private val itemPhotoRepository: ItemPhotoRepository,
     private val profileRepository: com.nsnm.herenow.domain.user.repository.ProfileRepository,
-    private val itemHistoryRepository: com.nsnm.herenow.domain.item.repository.ItemHistoryRepository
+    private val itemHistoryRepository: com.nsnm.herenow.domain.item.repository.ItemHistoryRepository,
+    private val notificationService: com.nsnm.herenow.api.notification.service.NotificationService,
+    private val userGroupMemberRepository: com.nsnm.herenow.domain.group.repository.UserGroupMemberRepository
 ) : BaseService() {
 
     @Transactional(readOnly = true)
@@ -121,6 +123,19 @@ class ItemService(
             changes = "물건 신규 등록",
             actionUserId = userId
         ))
+
+        // 6. 알림 발송 (해당 그룹 멤버 전체, 본인 제외)
+        val targetProfileIds = userGroupMemberRepository.findByGroupId(groupId)
+            .filter { it.profileId != userId }
+            .map { it.profileId }
+        val actionUserName = profileRepository.findById(userId).orElse(null)?.name ?: "누군가"
+        notificationService.sendNotification(
+            profileIds = targetProfileIds,
+            title = "새 물건 등록",
+            body = "\${actionUserName}님이 '\${savedItem.itemName}'을(를) 등록했어요.",
+            type = com.nsnm.herenow.lib.model.entity.NotificationType.ITEM_CREATED,
+            targetId = savedItem.itemId
+        )
 
         return ItemResponse(
             itemId = savedItem.itemId,
@@ -265,6 +280,21 @@ class ItemService(
             actionUserId = userId
         ))
 
+        // 4. 알림 발송 (해당 그룹 멤버 전체, 본인 제외)
+        if (changesMap.isNotEmpty()) {
+            val targetProfileIds = userGroupMemberRepository.findByGroupId(groupId)
+                .filter { it.profileId != userId }
+                .map { it.profileId }
+            val actionUserName = profileRepository.findById(userId).orElse(null)?.name ?: "누군가"
+            notificationService.sendNotification(
+                profileIds = targetProfileIds,
+                title = "물건 정보 수정",
+                body = "\${actionUserName}님이 '\${savedItem.itemName}'의 정보를 수정했어요.",
+                type = com.nsnm.herenow.lib.model.entity.NotificationType.ITEM_UPDATED,
+                targetId = savedItem.itemId
+            )
+        }
+
         return ItemResponse(
             itemId = savedItem.itemId,
             itemName = savedItem.itemName,
@@ -308,6 +338,19 @@ class ItemService(
             changes = null,
             actionUserId = userId
         ))
+        
+        // 알림 발송 (해당 그룹 멤버 전체, 본인 제외)
+        val targetProfileIds = userGroupMemberRepository.findByGroupId(groupId)
+            .filter { it.profileId != userId }
+            .map { it.profileId }
+        val actionUserName = profileRepository.findById(userId).orElse(null)?.name ?: "누군가"
+        notificationService.sendNotification(
+            profileIds = targetProfileIds,
+            title = "물건 삭제",
+            body = "\${actionUserName}님이 '\${itemEntity.itemName}'을(를) 삭제했어요.",
+            type = com.nsnm.herenow.lib.model.entity.NotificationType.ITEM_DELETED,
+            targetId = null
+        )
     }
 
     private fun mapToItemResponse(itemEntity: ItemEntity): ItemResponse {
