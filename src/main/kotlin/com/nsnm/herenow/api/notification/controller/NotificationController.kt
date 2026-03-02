@@ -6,6 +6,7 @@ import com.nsnm.herenow.api.notification.service.NotificationService
 import com.nsnm.herenow.fwk.core.base.BaseController
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springdoc.core.annotations.ParameterObject
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.security.core.context.SecurityContextHolder
@@ -33,7 +34,7 @@ class NotificationController(
 
     @Operation(summary = "내 알림함 목록 조회", description = "푸시 수신 내역(알림 센터)을 페이징하여 최신순으로 반환합니다.")
     @GetMapping("/notifications")
-    fun getMyNotifications(pageable: Pageable): Page<NotificationResponse> {
+    fun getMyNotifications(@ParameterObject pageable: Pageable): Page<NotificationResponse> {
         val uid = SecurityContextHolder.getContext().authentication.name
         return notificationService.getMyNotifications(uid, pageable)
     }
