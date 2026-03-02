@@ -211,7 +211,7 @@ class UserGroupService(
                 notificationService.sendNotification(
                     profileIds = targetProfileIds,
                     title = "스페이스 멤버 참여",
-                    body = "\${newMemberName}님이 '\${group.groupName}' 스페이스에 합류했어요.",
+                    body = "${newMemberName}님이 '${group.groupName}' 스페이스에 합류했어요.",
                     type = com.nsnm.herenow.lib.model.entity.NotificationType.GROUP_MEMBER_JOINED,
                     targetId = group.groupId
                 )
@@ -270,7 +270,7 @@ class UserGroupService(
         notificationService.sendNotification(
             profileIds = targetProfileIds,
             title = "스페이스 멤버 퇴장",
-            body = "\${memberName}님이 '\${group.groupName}' 스페이스에서 나갔습니다.",
+            body = "${memberName}님이 '${group.groupName}' 스페이스에서 나갔습니다.",
             type = com.nsnm.herenow.lib.model.entity.NotificationType.GROUP_MEMBER_REMOVED,
             targetId = group.groupId
         )

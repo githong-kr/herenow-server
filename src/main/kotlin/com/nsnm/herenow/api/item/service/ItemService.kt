@@ -132,7 +132,7 @@ class ItemService(
         notificationService.sendNotification(
             profileIds = targetProfileIds,
             title = "새 물건 등록",
-            body = "\${actionUserName}님이 '\${savedItem.itemName}'을(를) 등록했어요.",
+            body = "${actionUserName}님이 '${savedItem.itemName}'을(를) 등록했어요.",
             type = com.nsnm.herenow.lib.model.entity.NotificationType.ITEM_CREATED,
             targetId = savedItem.itemId
         )
@@ -289,7 +289,7 @@ class ItemService(
             notificationService.sendNotification(
                 profileIds = targetProfileIds,
                 title = "물건 정보 수정",
-                body = "\${actionUserName}님이 '\${savedItem.itemName}'의 정보를 수정했어요.",
+                body = "${actionUserName}님이 '${savedItem.itemName}'의 정보를 수정했어요.",
                 type = com.nsnm.herenow.lib.model.entity.NotificationType.ITEM_UPDATED,
                 targetId = savedItem.itemId
             )
@@ -347,7 +347,7 @@ class ItemService(
         notificationService.sendNotification(
             profileIds = targetProfileIds,
             title = "물건 삭제",
-            body = "\${actionUserName}님이 '\${itemEntity.itemName}'을(를) 삭제했어요.",
+            body = "${actionUserName}님이 '${itemEntity.itemName}'을(를) 삭제했어요.",
             type = com.nsnm.herenow.lib.model.entity.NotificationType.ITEM_DELETED,
             targetId = null
         )

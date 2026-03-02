@@ -59,14 +59,14 @@ class photoCleanupScheduler(
                             }
                         }
                     } catch (e: Exception) {
-                        log.warn("Storage 날짜 파싱 오류 (버킷: \$bucketName, 파일: \$fullPath): \${e.message}")
+                        log.warn("Storage 날짜 파싱 오류 (버킷: $bucketName, 파일: $fullPath): ${e.message}")
                     }
                 }
             }
 
             if (objectsToDelete.isNotEmpty()) {
                 log.info("버킷 '$bucketName'에서 ${objectsToDelete.size} 개의 고아 이미지를 발견하여 삭제를 진행합니다.")
-                log.debug("대상 파일 목록: \$objectsToDelete")
+                log.debug("대상 파일 목록: $objectsToDelete")
                 supabaseStorageClient.deleteObjects(bucketName, objectsToDelete)
             } else {
                 log.info("버킷 '$bucketName'에는 삭제가 필요한 고아 이미지가 없습니다.")

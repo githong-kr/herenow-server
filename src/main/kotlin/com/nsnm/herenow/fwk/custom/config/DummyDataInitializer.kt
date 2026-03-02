@@ -196,6 +196,6 @@ class DummyDataInitializer(
             itemCommentRepository.saveAll(comments)
         }
 
-        log.info("Dummy data initialization completed successfully! Created dummy user: \$dummyUid with \${items.size} items.")
+        log.info("Dummy data initialization completed successfully! Created dummy user: $dummyUid with ${items.size} items.")
     }
 }

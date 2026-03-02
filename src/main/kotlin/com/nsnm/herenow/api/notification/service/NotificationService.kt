@@ -39,7 +39,7 @@ class NotificationService(
                 expoPushToken = token
             )
             deviceTokenRepository.save(entity)
-            log.info("New Expo Push Token registered for user: \$profileId")
+            log.info("New Expo Push Token registered for user: $profileId")
         }
     }
 
@@ -125,8 +125,8 @@ class NotificationService(
                 .retrieve()
                 .bodyToMono(String::class.java)
                 .subscribe(
-                    { response -> log.info("Expo Push Success: \$response") },
-                    { error: Throwable -> log.error("Expo Push Failed: \${error.message}") }
+                    { response -> log.info("Expo Push Success: $response") },
+                    { error: Throwable -> log.error("Expo Push Failed: ${error.message}") }
                 )
         }
     }

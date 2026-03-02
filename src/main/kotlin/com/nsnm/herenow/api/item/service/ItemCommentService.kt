@@ -68,7 +68,7 @@ class ItemCommentService(
         notificationService.sendNotification(
             profileIds = targetProfileIds,
             title = "새 댓글 코멘트",
-            body = "\${actionUserName}님이 '\${item.itemName}'에 방명록을 남겼어요.",
+            body = "${actionUserName}님이 '${item.itemName}'에 방명록을 남겼어요.",
             type = com.nsnm.herenow.lib.model.entity.NotificationType.COMMENT_ADDED,
             targetId = itemId
         )

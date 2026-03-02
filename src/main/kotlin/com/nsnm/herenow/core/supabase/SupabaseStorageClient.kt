@@ -144,7 +144,7 @@ class SupabaseStorageClient(
      * 실제 스토리지 Delete API 구동을 위한 fileName 경로만 추출하여 반환합니다.
      */
     fun extractFilePathFromUrl(publicUrl: String, bucketName: String): String? {
-        val token = "/public/\$bucketName/"
+        val token = "/public/$bucketName/"
         val index = publicUrl.indexOf(token)
         if (index == -1) return null
         return java.net.URLDecoder.decode(publicUrl.substring(index + token.length), "UTF-8")
