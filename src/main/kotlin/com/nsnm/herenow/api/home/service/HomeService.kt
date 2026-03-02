@@ -9,8 +9,9 @@ import com.nsnm.herenow.domain.item.model.entity.ItemEntity
 import com.nsnm.herenow.domain.item.model.entity.LocationEntity
 import com.nsnm.herenow.domain.item.model.entity.ItemPhotoEntity
 import com.nsnm.herenow.domain.item.repository.CategoryRepository
-import com.nsnm.herenow.domain.item.repository.ItemRepository
 import com.nsnm.herenow.domain.item.repository.ItemPhotoRepository
+import com.nsnm.herenow.domain.item.repository.ItemRepository
+import com.nsnm.herenow.domain.item.repository.ItemHistoryRepository
 import com.nsnm.herenow.domain.item.repository.LocationRepository
 import com.nsnm.herenow.domain.user.repository.ProfileRepository
 import org.springframework.stereotype.Service
@@ -27,7 +28,8 @@ class HomeService(
     private val itemRepository: ItemRepository,
     private val categoryRepository: CategoryRepository,
     private val locationRepository: LocationRepository,
-    private val itemPhotoRepository: ItemPhotoRepository
+    private val itemPhotoRepository: ItemPhotoRepository,
+    private val itemHistoryRepository: ItemHistoryRepository
 ) : BaseService() {
 
     fun getHomeDashboardData(uid: String): HomeResponse {
@@ -58,18 +60,42 @@ class HomeService(
         val addedThisMonthCount = items.count { it.frstRegTmst?.toLocalDate()?.isAfter(now.withDayOfMonth(1).minusDays(1)) == true || (it.purchaseDate != null && it.purchaseDate!! >= now.withDayOfMonth(1)) }
         val imminentOrExpiredCount = items.count { it.expiryDate != null && ChronoUnit.DAYS.between(now, it.expiryDate) <= 7 }
 
-        // 4. 임박 리스트 (만료일자가 임박한 순 정렬, D-7 이내 항목 위주)
-        val imminentItems = items
-            .filter { it.expiryDate != null }
-            .sortedBy { it.expiryDate }
+        // 4. 수량 부족 리스트 (최소수량보다 적게 남은 아이템, minQuantity > 0 기준)
+        val lowStockItems = items
+            .filter { it.minQuantity > 0 && it.quantity <= it.minQuantity }
+            .sortedBy { it.quantity - it.minQuantity } // 부족분이 큰 순(또는 음수 작은 순)
             .take(10)
             .map { convertToHomeItemDto(it, catMap, locMap, photoMap, now) }
 
-        // 5. 최근 아이템 리스트 (등록일/구매일 기준 역순)
-        val recentItems = items
-            .sortedByDescending { it.frstRegTmst }
-            .take(10)
-            .map { convertToHomeItemDto(it, catMap, locMap, photoMap, now) }
+        // 5. 최근 활동 통계 (그룹 내 ItemHistory 내역 최근 10개)
+        val recentHistory = itemHistoryRepository.findByGroupIdOrderByFrstRegTmstDesc(groupId).take(10)
+        
+        // 이력 활동자 이름을 가져오기 위해 profile 맵 구성
+        val actorIds = recentHistory.map { it.actionUserId }.distinct()
+        val actorProfiles = profileRepository.findAllById(actorIds).associateBy { it.profileId }
+
+        val recentActivities = recentHistory.map { history ->
+            val timestamp = history.frstRegTmst ?: java.time.LocalDateTime.now()
+            val timeDiffMinutes = java.time.temporal.ChronoUnit.MINUTES.between(timestamp, java.time.LocalDateTime.now())
+            val timestampText = when {
+                timeDiffMinutes < 60 -> if (timeDiffMinutes <= 0) "방금 전" else "${timeDiffMinutes}분 전"
+                timeDiffMinutes < 24 * 60 -> "${timeDiffMinutes / 60}시간 전"
+                else -> "${timeDiffMinutes / (24 * 60)}일 전"
+            }
+            
+            // 삭제된 항목 등은 itemName을 파싱하거나 보조해야 하지만, 기본적으로 Entity에 있는 걸 쓴다고 가정 (또는 json파싱 필요).
+            // 해당 서비스/엔티티에 itemName 저장이 없으므로 items 기준 fallback.
+            val itemNameFallback = items.find { it.itemId == history.itemId }?.itemName ?: "삭제된 물건"
+
+            com.nsnm.herenow.api.home.v1.dto.HomeRecentActivityDto(
+                historyId = history.itemHistoryId,
+                itemId = history.itemId,
+                itemName = itemNameFallback,
+                actionType = history.actionType,
+                actorName = actorProfiles[history.actionUserId]?.name ?: "알 수 없음",
+                timestampText = timestampText
+            )
+        }
 
         // 6. 위치/카테고리 요약 데이터
         val locationsSummary = locations
@@ -85,9 +111,9 @@ class HomeService(
         return HomeResponse(
             totalItemCount = totalItemCount,
             addedThisMonthCount = addedThisMonthCount,
-            imminentOrExpiredCount = imminentOrExpiredCount,
-            imminentItems = imminentItems,
-            recentItems = recentItems,
+            imminentOrExpiredCount = imminentOrExpiredCount, // 하위호환성 유지 혹은 필요시 제거
+            lowStockItems = lowStockItems,
+            recentActivities = recentActivities,
             locationsSummary = locationsSummary,
             categoriesSummary = categoriesSummary,
             groupName = groupName,
@@ -97,7 +123,7 @@ class HomeService(
 
     private fun createEmptyResponse() = HomeResponse(
         totalItemCount = 0, addedThisMonthCount = 0, imminentOrExpiredCount = 0,
-        imminentItems = emptyList(), recentItems = emptyList(),
+        lowStockItems = emptyList(), recentActivities = emptyList(),
         locationsSummary = emptyMap(), categoriesSummary = emptyMap()
     )
 

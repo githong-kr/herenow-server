@@ -12,11 +12,11 @@ data class HomeResponse(
     @Schema(description = "임박(7일 이내) 또는 만료된 물건의 총 개수")
     val imminentOrExpiredCount: Int,
     
-    @Schema(description = "유통기한 임박 물건 리스트 (최대 10개)")
-    val imminentItems: List<HomeItemDto>,
+    @Schema(description = "수량 부족 항목 리스트 (최대 10개)")
+    val lowStockItems: List<HomeItemDto>,
     
-    @Schema(description = "최근 추가된 항목 리스트 (최대 10개)")
-    val recentItems: List<HomeItemDto>,
+    @Schema(description = "최근 멤버 활동 내역 리스트 (최대 10개)")
+    val recentActivities: List<HomeRecentActivityDto>,
     
     @Schema(description = "장소별 모아보기 요약 데이터 (Key: locationGroup, Value: HomeSummaryItemDto 리스트)")
     val locationsSummary: Map<String, List<HomeSummaryItemDto>>,
@@ -60,4 +60,24 @@ data class HomeSummaryItemDto(
     
     @Schema(description = "노출될 이름")
     val name: String
+)
+
+data class HomeRecentActivityDto(
+    @Schema(description = "타임라인(로그) 고유 ID")
+    val historyId: String,
+    
+    @Schema(description = "대상 물건 ID")
+    val itemId: String,
+    
+    @Schema(description = "대상 물건 이름")
+    val itemName: String,
+    
+    @Schema(description = "활동 유형 (CREATE, UPDATE, DELETE)")
+    val actionType: String,
+    
+    @Schema(description = "활동 주체 (수행한 멤버 이름)")
+    val actorName: String,
+    
+    @Schema(description = "활동 일시 표시 (예: 방금 전, 2시간 전)")
+    val timestampText: String
 )

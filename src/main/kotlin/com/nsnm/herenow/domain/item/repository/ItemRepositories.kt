@@ -54,5 +54,6 @@ interface ItemPhotoRepository : JpaRepository<ItemPhotoEntity, String> {
 @Repository
 interface ItemHistoryRepository : JpaRepository<com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity, String> {
     fun findByItemIdOrderByFrstRegTmstDesc(itemId: String): List<com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity>
+    fun findByGroupIdOrderByFrstRegTmstDesc(groupId: String): List<com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity>
 }
 
