@@ -1,436 +1,100 @@
 package com.nsnm.herenow.api.item.service
 
+import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
-import com.nsnm.herenow.api.item.v1.dto.CreateItemRequest
-import com.nsnm.herenow.api.item.v1.dto.ItemResponse
-import com.nsnm.herenow.api.item.v1.dto.UpdateItemRequest
-import com.nsnm.herenow.domain.item.model.entity.ItemEntity
-import com.nsnm.herenow.domain.item.model.entity.ItemPhotoEntity
-import com.nsnm.herenow.domain.item.model.entity.ItemTagEntity
-import com.nsnm.herenow.domain.item.model.entity.TagEntity
-import com.nsnm.herenow.domain.item.repository.CategoryRepository
-import com.nsnm.herenow.domain.item.repository.ItemPhotoRepository
+import com.nsnm.herenow.api.item.dto.*
+import com.nsnm.herenow.domain.item.entity.ItemEntity
 import com.nsnm.herenow.domain.item.repository.ItemRepository
-import com.nsnm.herenow.domain.item.repository.ItemTagRepository
-import com.nsnm.herenow.domain.item.repository.LocationRepository
-import com.nsnm.herenow.domain.item.repository.TagRepository
-import com.nsnm.herenow.api.item.v1.dto.SearchItemRequest
-import com.nsnm.herenow.fwk.core.error.BizException
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.Pageable
+import com.nsnm.herenow.domain.space.repository.SpaceMemberRepository
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import com.nsnm.herenow.fwk.core.base.BaseService
+import org.springframework.web.server.ResponseStatusException
+import java.time.OffsetDateTime
+import java.util.UUID
 
 @Service
 class ItemService(
     private val itemRepository: ItemRepository,
-    private val categoryRepository: CategoryRepository,
-    private val locationRepository: LocationRepository,
-    private val tagRepository: TagRepository,
-    private val itemTagRepository: ItemTagRepository,
-    private val itemPhotoRepository: ItemPhotoRepository,
-    private val profileRepository: com.nsnm.herenow.domain.user.repository.ProfileRepository,
-    private val itemHistoryRepository: com.nsnm.herenow.domain.item.repository.ItemHistoryRepository,
-    private val notificationService: com.nsnm.herenow.api.notification.service.NotificationService,
-    private val userGroupMemberRepository: com.nsnm.herenow.domain.group.repository.UserGroupMemberRepository
-) : BaseService() {
+    private val spaceMemberRepository: SpaceMemberRepository
+) {
 
-    @Transactional(readOnly = true)
-    fun getItems(groupId: String, request: SearchItemRequest, pageable: Pageable): Page<ItemResponse> {
-        val spec = ItemSpecification.search(
-            groupId = groupId,
-            keyword = request.keyword,
-            categoryId = request.categoryId,
-            locationId = request.locationId,
-            status = request.status
-        )
-        val entityPage = itemRepository.findAll(spec, pageable)
-        return entityPage.map { mapToItemResponse(it) }
-    }
+    private val mapper = jacksonObjectMapper()
 
-    @Transactional(readOnly = true)
-    fun getItem(groupId: String, itemId: String): ItemResponse {
-        val itemEntity = itemRepository.findById(itemId)
-            .filter { it.groupId == groupId }
-            .orElseThrow { BizException("존재하지 않거나 권한이 없는 아이템입니다.") }
-        return mapToItemResponse(itemEntity)
+    fun getItems(userId: UUID, spaceId: UUID): List<ItemResponse> {
+        requireMembership(userId, spaceId)
+        return itemRepository.findBySpaceId(spaceId).map { it.toResponse() }
     }
 
     @Transactional
-    fun createItem(groupId: String, userId: String, request: CreateItemRequest): ItemResponse {
-        // 1. 참조 데이터 유효성 검증
-        if (request.categoryId != null && !categoryRepository.existsById(request.categoryId)) {
-            throw BizException("존재하지 않는 카테고리입니다.")
-        }
-        if (request.locationId != null && !locationRepository.existsById(request.locationId)) {
-            throw BizException("존재하지 않는 보관장소입니다.")
-        }
-
-        // 2. 아이템 기본 정보 저장
-        val itemEntity = ItemEntity(
-            groupId = groupId,
-            categoryId = request.categoryId,
-            locationId = request.locationId,
-            itemName = request.itemName,
-            quantity = request.quantity,
-            minQuantity = request.minQuantity,
-            purchaseDate = request.purchaseDate,
-            purchasePlace = request.purchasePlace,
-            price = request.price,
-            expiryDate = request.expiryDate,
-            memo = request.memo,
-            shortcutNumber = request.shortcutNumber
-        )
-        val savedItem = itemRepository.save(itemEntity)
-
-        // 3. 사진 정보 일괄 저장
-        val savedPhotos = request.photoUrls.mapIndexed { index, url ->
-            itemPhotoRepository.save(ItemPhotoEntity(
-                itemId = savedItem.itemId,
-                photoUrl = url,
-                displayOrder = index
-            ))
-        }
-
-        // 4. 태그 처리 (없으면 생성, 있으면 연결)
-        val savedTagNames = mutableListOf<String>()
-        request.tags.forEach { tagNameOrId ->
-            // 그룹 내 이미 존재하는 태그인지 이름으로 검색 (ID가 넘어올 수도 있으나, 여기선 이름 기반 UPSERT 처리)
-            val existingTags = tagRepository.findByGroupId(groupId)
-            var tag = existingTags.find { it.tagName == tagNameOrId || it.tagId == tagNameOrId }
-            
-            if (tag == null) {
-                // 새 태그 생성
-                tag = tagRepository.save(TagEntity(groupId = groupId, tagName = tagNameOrId))
-            }
-            
-            // ItemTag 매핑 테이블 삽입
-            itemTagRepository.save(ItemTagEntity(
-                itemId = savedItem.itemId,
-                tagId = tag.tagId
-            ))
-            
-            savedTagNames.add(tag.tagName)
-        }
-
-        // 5. 이력 기록 (CREATE)
-        itemHistoryRepository.save(com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity(
-            itemId = savedItem.itemId,
-            groupId = groupId,
-            actionType = "CREATE",
-            changes = "물건 신규 등록",
-            actionUserId = userId
+    fun createItem(userId: UUID, spaceId: UUID, req: CreateItemRequest): ItemResponse {
+        requireMembership(userId, spaceId)
+        val item = itemRepository.save(ItemEntity(
+            spaceId = spaceId, name = req.name, icon = req.icon,
+            photoUrl = req.photoUrl, categoryId = req.categoryId,
+            quantity = req.quantity, minQuantity = req.minQuantity,
+            expiryDate = req.expiryDate, memo = req.memo,
+            tags = mapper.writeValueAsString(req.tags),
+            storageId = req.storageId, rowPos = req.rowPos, colPos = req.colPos
         ))
-
-        // 6. 알림 발송 (해당 그룹 멤버 전체, 본인 제외)
-        val targetProfileIds = userGroupMemberRepository.findByGroupId(groupId)
-            .filter { it.profileId != userId }
-            .map { it.profileId }
-        val actionUserName = profileRepository.findById(userId).orElse(null)?.name ?: "누군가"
-        notificationService.sendNotification(
-            profileIds = targetProfileIds,
-            title = "새 물건 등록",
-            body = "${actionUserName}님이 '${savedItem.itemName}'을(를) 등록했어요.",
-            type = com.nsnm.herenow.lib.model.entity.NotificationType.ITEM_CREATED,
-            targetId = savedItem.itemId
-        )
-
-        return ItemResponse(
-            itemId = savedItem.itemId,
-            itemName = savedItem.itemName,
-            categoryId = savedItem.categoryId,
-            categoryName = savedItem.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName },
-            locationId = savedItem.locationId,
-            locationName = savedItem.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName },
-            locationPhotoUrl = savedItem.locationId?.let { locationRepository.findById(it).orElse(null)?.photoUrl },
-            quantity = savedItem.quantity,
-            minQuantity = savedItem.minQuantity,
-            expiryDate = savedItem.expiryDate,
-            memo = savedItem.memo,
-            shortcutNumber = savedItem.shortcutNumber,
-            tags = savedTagNames,
-            photoUrls = savedPhotos.map { it.photoUrl },
-            frstRegTmst = savedItem.frstRegTmst,
-            frstRegName = savedItem.frstRegGuid?.let { profileRepository.findById(it).orElse(null)?.name },
-            lastChngTmst = savedItem.lastChngTmst,
-            lastChngName = savedItem.lastChngGuid?.let { profileRepository.findById(it).orElse(null)?.name }
-        )
+        return item.toResponse()
     }
 
     @Transactional
-    fun updateItem(groupId: String, userId: String, itemId: String, request: UpdateItemRequest): ItemResponse {
-        val itemEntity = itemRepository.findById(itemId)
-            .filter { it.groupId == groupId }
-            .orElseThrow { BizException("존재하지 않거나 권한이 없는 아이템입니다.") }
-
-        if (request.categoryId != null && !categoryRepository.existsById(request.categoryId)) {
-            throw BizException("존재하지 않는 카테고리입니다.")
-        }
-        if (request.locationId != null && !locationRepository.existsById(request.locationId)) {
-            throw BizException("존재하지 않는 보관장소입니다.")
-        }
-
-        // 변경점 추적 (변수 맵핑 기반)
-        val changesMap = mutableMapOf<String, String>()
-        
-        fun String?.orEmptyText() = this ?: "없음"
-        fun java.math.BigDecimal?.orEmptyText() = this?.toString() ?: "없음"
-        fun java.time.LocalDate?.orEmptyText() = this?.toString() ?: "없음"
-
-        if (itemEntity.categoryId != request.categoryId) {
-            val oldCat = itemEntity.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName } ?: "없음"
-            val newCat = request.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName } ?: "없음"
-            changesMap["카테고리"] = "$oldCat -> $newCat"
-        }
-        if (itemEntity.locationId != request.locationId) {
-            val oldLoc = itemEntity.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName } ?: "없음"
-            val newLoc = request.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName } ?: "없음"
-            changesMap["보관장소"] = "$oldLoc -> $newLoc"
-        }
-        if (itemEntity.itemName != request.itemName) changesMap["이름"] = "${itemEntity.itemName} -> ${request.itemName}"
-        if (itemEntity.quantity != request.quantity) changesMap["수량"] = "${itemEntity.quantity} -> ${request.quantity}"
-        if (itemEntity.minQuantity != request.minQuantity) changesMap["경고수량"] = "${itemEntity.minQuantity} -> ${request.minQuantity}"
-        if (itemEntity.purchaseDate != request.purchaseDate) changesMap["구입일"] = "${itemEntity.purchaseDate.orEmptyText()} -> ${request.purchaseDate.orEmptyText()}"
-        if (itemEntity.purchasePlace != request.purchasePlace) changesMap["구입처"] = "${itemEntity.purchasePlace.orEmptyText()} -> ${request.purchasePlace.orEmptyText()}"
-        if (itemEntity.price != request.price) changesMap["가격"] = "${itemEntity.price.orEmptyText()} -> ${request.price.orEmptyText()}"
-        if (itemEntity.expiryDate != request.expiryDate) changesMap["소비기한"] = "${itemEntity.expiryDate.orEmptyText()} -> ${request.expiryDate.orEmptyText()}"
-        if (itemEntity.memo != request.memo) changesMap["메모"] = "${itemEntity.memo.orEmptyText()} -> ${request.memo.orEmptyText()}"
-        if (itemEntity.shortcutNumber != request.shortcutNumber) changesMap["즐겨찾기번호"] = "${itemEntity.shortcutNumber ?: "없음"} -> ${request.shortcutNumber ?: "없음"}"
-
-        // 1. 아이템 정보 업데이트
-        itemEntity.apply {
-            categoryId = request.categoryId
-            locationId = request.locationId
-            itemName = request.itemName
-            quantity = request.quantity
-            minQuantity = request.minQuantity
-            purchaseDate = request.purchaseDate
-            purchasePlace = request.purchasePlace
-            price = request.price
-            expiryDate = request.expiryDate
-            memo = request.memo
-            shortcutNumber = request.shortcutNumber
-        }
-        val savedItem = itemRepository.save(itemEntity)
-
-        // 2. 사진 정보 업데이트 (기존 내역과 비교 후 재생성)
-        val oldPhotos = itemPhotoRepository.findByItemId(itemId).map { it.photoUrl }
-        val newPhotos = request.photoUrls
-        if (oldPhotos != newPhotos) {
-            val added = newPhotos.count { !oldPhotos.contains(it) }
-            val removed = oldPhotos.count { !newPhotos.contains(it) }
-            if (added > 0 || removed > 0) {
-                val parts = mutableListOf<String>()
-                if (added > 0) parts.add("${added}장 추가")
-                if (removed > 0) parts.add("${removed}장 삭제")
-                changesMap["사진"] = parts.joinToString(", ")
-            }
-        }
-        itemPhotoRepository.deleteByItemId(itemId)
-        val savedPhotos = request.photoUrls.mapIndexed { index, url ->
-            itemPhotoRepository.save(ItemPhotoEntity(
-                itemId = savedItem.itemId,
-                photoUrl = url,
-                displayOrder = index
-            ))
-        }
-
-        // 3. 태그 정보 업데이트 (기존 매핑 삭제 후 재생성)
-        val oldTagsEntities = itemTagRepository.findByItemId(itemId)
-        val oldTagNames = oldTagsEntities.mapNotNull { tagRepository.findById(it.tagId).orElse(null)?.tagName }
-        val newTagNamesInput = request.tags // 보통 클라이언트에서 tagName 문자열 배열을 넘김
-
-        itemTagRepository.deleteByItemId(itemId)
-        val savedTagNames = mutableListOf<String>()
-        request.tags.forEach { tagNameOrId ->
-            val existingTags = tagRepository.findByGroupId(groupId)
-            var tag = existingTags.find { it.tagName == tagNameOrId || it.tagId == tagNameOrId }
-            if (tag == null) {
-                tag = tagRepository.save(TagEntity(groupId = groupId, tagName = tagNameOrId))
-            }
-            itemTagRepository.save(ItemTagEntity(
-                itemId = savedItem.itemId,
-                tagId = tag.tagId
-            ))
-            savedTagNames.add(tag.tagName)
-        }
-        
-        // 태그 변경내역 기록
-        if (oldTagNames.sorted() != savedTagNames.sorted()) {
-            val addedTags = savedTagNames.filter { !oldTagNames.contains(it) }
-            val removedTags = oldTagNames.filter { !savedTagNames.contains(it) }
-            if (addedTags.isNotEmpty() || removedTags.isNotEmpty()) {
-                val parts = mutableListOf<String>()
-                if (addedTags.isNotEmpty()) parts.add("추가(${addedTags.joinToString(", ")})")
-                if (removedTags.isNotEmpty()) parts.add("삭제(${removedTags.joinToString(", ")})")
-                changesMap["태그"] = parts.joinToString(", ")
-            }
-        }
-
-        val mapper = jacksonObjectMapper()
-        val changesText = if (changesMap.isEmpty()) null else mapper.writeValueAsString(changesMap)
-
-        itemHistoryRepository.save(com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity(
-            itemId = savedItem.itemId,
-            groupId = groupId,
-            actionType = "UPDATE",
-            changes = changesText,
-            actionUserId = userId
-        ))
-
-        // 4. 알림 발송 (해당 그룹 멤버 전체, 본인 제외)
-        if (changesMap.isNotEmpty()) {
-            val targetProfileIds = userGroupMemberRepository.findByGroupId(groupId)
-                .filter { it.profileId != userId }
-                .map { it.profileId }
-            val actionUserName = profileRepository.findById(userId).orElse(null)?.name ?: "누군가"
-            notificationService.sendNotification(
-                profileIds = targetProfileIds,
-                title = "물건 정보 수정",
-                body = "${actionUserName}님이 '${savedItem.itemName}'의 정보를 수정했어요.",
-                type = com.nsnm.herenow.lib.model.entity.NotificationType.ITEM_UPDATED,
-                targetId = savedItem.itemId
-            )
-        }
-
-        return ItemResponse(
-            itemId = savedItem.itemId,
-            itemName = savedItem.itemName,
-            categoryId = savedItem.categoryId,
-            categoryName = savedItem.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName },
-            locationId = savedItem.locationId,
-            locationName = savedItem.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName },
-            locationPhotoUrl = savedItem.locationId?.let { locationRepository.findById(it).orElse(null)?.photoUrl },
-            quantity = savedItem.quantity,
-            minQuantity = savedItem.minQuantity,
-            expiryDate = savedItem.expiryDate,
-            memo = savedItem.memo,
-            shortcutNumber = savedItem.shortcutNumber,
-            tags = savedTagNames,
-            photoUrls = savedPhotos.map { it.photoUrl },
-            frstRegTmst = savedItem.frstRegTmst,
-            frstRegName = savedItem.frstRegGuid?.let { profileRepository.findById(it).orElse(null)?.name },
-            lastChngTmst = savedItem.lastChngTmst,
-            lastChngName = savedItem.lastChngGuid?.let { profileRepository.findById(it).orElse(null)?.name }
-        )
+    fun updateItem(userId: UUID, itemId: UUID, req: UpdateItemRequest): ItemResponse {
+        val item = itemRepository.findById(itemId).orElseThrow { notFound("Item") }
+        requireMembership(userId, item.spaceId)
+        req.name?.let { item.name = it }
+        req.icon?.let { item.icon = it }
+        req.photoUrl?.let { item.photoUrl = it }
+        req.categoryId?.let { item.categoryId = it }
+        req.quantity?.let { item.quantity = it }
+        req.minQuantity?.let { item.minQuantity = it }
+        req.expiryDate?.let { item.expiryDate = it }
+        req.memo?.let { item.memo = it }
+        req.tags?.let { item.tags = mapper.writeValueAsString(it) }
+        item.updatedAt = OffsetDateTime.now()
+        itemRepository.save(item)
+        return item.toResponse()
     }
 
     @Transactional
-    fun deleteItem(groupId: String, userId: String, itemId: String) {
-        val itemEntity = itemRepository.findById(itemId)
-            .filter { it.groupId == groupId }
-            .orElseThrow { BizException("존재하지 않거나 권한이 없는 아이템입니다.") }
-
-        // 하위 엔티티들을 모두 명시적으로 삭제 (DB 설정에 cascade 가 없을 것을 대비)
-        itemTagRepository.deleteByItemId(itemId)
-        itemPhotoRepository.deleteByItemId(itemId)
-        
-        // 아이템 엔티티 삭제
-        itemRepository.delete(itemEntity)
-
-        // 이력 기록 (DELETE) - 이미 삭제되었지만 로그 추적을 위해 저장
-        itemHistoryRepository.save(com.nsnm.herenow.domain.item.model.entity.ItemHistoryEntity(
-            itemId = itemId,
-            groupId = groupId,
-            actionType = "DELETE",
-            changes = null,
-            actionUserId = userId
-        ))
-        
-        // 알림 발송 (해당 그룹 멤버 전체, 본인 제외)
-        val targetProfileIds = userGroupMemberRepository.findByGroupId(groupId)
-            .filter { it.profileId != userId }
-            .map { it.profileId }
-        val actionUserName = profileRepository.findById(userId).orElse(null)?.name ?: "누군가"
-        notificationService.sendNotification(
-            profileIds = targetProfileIds,
-            title = "물건 삭제",
-            body = "${actionUserName}님이 '${itemEntity.itemName}'을(를) 삭제했어요.",
-            type = com.nsnm.herenow.lib.model.entity.NotificationType.ITEM_DELETED,
-            targetId = null
-        )
+    fun deleteItem(userId: UUID, itemId: UUID) {
+        val item = itemRepository.findById(itemId).orElseThrow { notFound("Item") }
+        requireMembership(userId, item.spaceId)
+        itemRepository.delete(item)
     }
 
-    private fun mapToItemResponse(itemEntity: ItemEntity): ItemResponse {
-        val tags = itemTagRepository.findByItemId(itemEntity.itemId)
-            .map { tagRepository.findById(it.tagId).orElse(null)?.tagName ?: "" }
-            .filter { it.isNotBlank() }
-        
-        val photoUrls = itemPhotoRepository.findByItemId(itemEntity.itemId)
-            .map { it.photoUrl }
+    @Transactional
+    fun assignItem(userId: UUID, itemId: UUID, req: AssignItemRequest): ItemResponse {
+        val item = itemRepository.findById(itemId).orElseThrow { notFound("Item") }
+        requireMembership(userId, item.spaceId)
+        item.storageId = req.storageId
+        item.rowPos = req.rowPos
+        item.colPos = req.colPos
+        item.updatedAt = OffsetDateTime.now()
+        itemRepository.save(item)
+        return item.toResponse()
+    }
 
+    private fun requireMembership(userId: UUID, spaceId: UUID) {
+        if (!spaceMemberRepository.existsBySpaceIdAndUserId(spaceId, userId))
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "스페이스 멤버가 아닙니다.")
+    }
+
+    private fun notFound(entity: String) = ResponseStatusException(HttpStatus.NOT_FOUND, "$entity 를 찾을 수 없습니다.")
+
+    private fun ItemEntity.toResponse(): ItemResponse {
+        val tagList: List<String> = try {
+            mapper.readValue(tags, object : TypeReference<List<String>>() {})
+        } catch (e: Exception) { emptyList() }
         return ItemResponse(
-            itemId = itemEntity.itemId,
-            itemName = itemEntity.itemName,
-            categoryId = itemEntity.categoryId,
-            categoryName = itemEntity.categoryId?.let { categoryRepository.findById(it).orElse(null)?.categoryName },
-            locationId = itemEntity.locationId,
-            locationName = itemEntity.locationId?.let { locationRepository.findById(it).orElse(null)?.locationName },
-            locationPhotoUrl = itemEntity.locationId?.let { locationRepository.findById(it).orElse(null)?.photoUrl },
-            quantity = itemEntity.quantity,
-            minQuantity = itemEntity.minQuantity,
-            expiryDate = itemEntity.expiryDate,
-            memo = itemEntity.memo,
-            shortcutNumber = itemEntity.shortcutNumber,
-            tags = tags,
-            photoUrls = photoUrls,
-            frstRegTmst = itemEntity.frstRegTmst,
-            frstRegName = itemEntity.frstRegGuid?.let { profileRepository.findById(it).orElse(null)?.name },
-            lastChngTmst = itemEntity.lastChngTmst,
-            lastChngName = itemEntity.lastChngGuid?.let { profileRepository.findById(it).orElse(null)?.name }
+            id = id, spaceId = spaceId, storageId = storageId,
+            rowPos = rowPos, colPos = colPos,
+            name = name, icon = icon, photoUrl = photoUrl, categoryId = categoryId,
+            quantity = quantity, minQuantity = minQuantity,
+            expiryDate = expiryDate, memo = memo, tags = tagList,
+            createdAt = createdAt, updatedAt = updatedAt
         )
-    }
-
-    @Transactional(readOnly = true)
-    fun getItemHistory(itemId: String): List<com.nsnm.herenow.api.item.v1.dto.ItemHistoryResponse> {
-        val mapper = jacksonObjectMapper()
-        val historyList = itemHistoryRepository.findByItemIdOrderByFrstRegTmstDesc(itemId)
-        
-        return historyList.map { history ->
-            val actionUserName = profileRepository.findById(history.actionUserId).orElse(null)?.name ?: "알 수 없음"
-            
-            // Server-side message formatting (Templating)
-            val title = when (history.actionType) {
-                "CREATE" -> "물건 등록"
-                "UPDATE" -> "정보 수정"
-                "DELETE" -> "물건 삭제"
-                else -> history.actionType
-            }
-            
-            val message = when (history.actionType) {
-                "CREATE" -> "${actionUserName} 님이 물건을 새로 등록했어요."
-                "UPDATE" -> "${actionUserName} 님이 물건 정보를 아래와 같이 수정했어요."
-                "DELETE" -> "${actionUserName} 님이 물건을 삭제했어요."
-                else -> "${actionUserName} 님이 작업을 수행했어요."
-            }
-
-            val details = mutableListOf<String>()
-            if (history.actionType == "UPDATE" && !history.changes.isNullOrBlank()) {
-                try {
-                    val changesText = history.changes!!.trim()
-                    if (changesText.startsWith("{")) {
-                        // Parses JSON map format
-                        val changesMap: Map<String, String> = mapper.readValue(changesText)
-                        changesMap.forEach { (key, value) -> details.add("$key: $value") }
-                    } else {
-                        // Fallback for old line-separated text format
-                        details.addAll(changesText.split("\n"))
-                    }
-                } catch (e: Exception) {
-                    details.add(history.changes!!)
-                }
-            }
-
-            com.nsnm.herenow.api.item.v1.dto.ItemHistoryResponse(
-                itemHistoryId = history.itemHistoryId,
-                actionType = history.actionType,
-                title = title,
-                message = message,
-                details = details,
-                tmst = history.frstRegTmst?.toString()
-            )
-        }
     }
 }

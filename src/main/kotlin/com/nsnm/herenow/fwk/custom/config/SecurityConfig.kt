@@ -35,7 +35,7 @@ class SecurityConfig(
                             response: jakarta.servlet.http.HttpServletResponse,
                             filterChain: jakarta.servlet.FilterChain
                         ) {
-                            val token = org.springframework.security.authentication.UsernamePasswordAuthenticationToken("dummy-uid-1234", null, listOf())
+                            val token = org.springframework.security.authentication.UsernamePasswordAuthenticationToken("00000000-0000-0000-0000-000000001234", null, listOf())
                             org.springframework.security.core.context.SecurityContextHolder.getContext().authentication = token
                             filterChain.doFilter(request, response)
                         }
@@ -43,9 +43,8 @@ class SecurityConfig(
                 } else {
                     // 기본 정적 및 Swagger 페이지, 헬스체크 허용, 초대 링크/API 접근 허용, 빌드 파일 접근 허용, 나머지는 무조건 인증!
                     it.requestMatchers(
-                        "/", "/actuator/health", "/api/v1/sample/**", "/h2-console/**", "/v3/api-docs/**", 
-                        "/swagger-ui/**", "/v3/api-docs.yaml", "/invite/**", "/api/v1/groups/invite/**",
-                        "/app-builds/**", "/download.html"
+                        "/", "/actuator/health", "/h2-console/**", "/v3/api-docs/**", 
+                        "/swagger-ui/**", "/v3/api-docs.yaml"
                     ).permitAll()
                         .anyRequest().authenticated()
                 }
@@ -67,6 +66,13 @@ class SecurityConfig(
 
     @Bean
     fun jwtDecoder(): org.springframework.security.oauth2.jwt.JwtDecoder {
+        val isLocal = env.activeProfiles.contains("local") || env.activeProfiles.isEmpty()
+        if (isLocal) {
+            // 로컬 환경에서는 JWT 검증 안 하므로 JWKS 접속 시도 안 함
+            return org.springframework.security.oauth2.jwt.JwtDecoder { token ->
+                throw UnsupportedOperationException("JWT decoding is disabled in local profile")
+            }
+        }
         val jwkSetUri = env.getProperty("spring.security.oauth2.resourceserver.jwt.jwk-set-uri") 
             ?: throw IllegalStateException("jwk-set-uri is required for JWT validation")
         

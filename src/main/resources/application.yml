@@ -37,8 +37,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          # Supabase가 제공하는 공개키(JWKS) 엔드포인트 URL
-          jwk-set-uri: https://${TEST_SUPABASE_PROJECT_REF}.supabase.co/auth/v1/.well-known/jwks.json
+          # 로컬에서는 JWT 검증 안 하지만, 자동 설정 방지용 더미 URI
+          jwk-set-uri: http://localhost:0/dummy-jwks
 
 supabase:
   url: https://${TEST_SUPABASE_PROJECT_REF}.supabase.co
