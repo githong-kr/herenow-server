@@ -44,7 +44,8 @@ class SecurityConfig(
                     // 기본 정적 및 Swagger 페이지, 헬스체크 허용, 초대 링크/API 접근 허용, 빌드 파일 접근 허용, 나머지는 무조건 인증!
                     it.requestMatchers(
                         "/", "/actuator/health", "/h2-console/**", "/v3/api-docs/**", 
-                        "/swagger-ui/**", "/v3/api-docs.yaml"
+                        "/swagger-ui/**", "/v3/api-docs.yaml",
+                        "/download.html", "/app-builds/**"
                     ).permitAll()
                         .anyRequest().authenticated()
                 }
