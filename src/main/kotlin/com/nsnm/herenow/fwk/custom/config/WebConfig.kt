@@ -8,9 +8,8 @@ import java.nio.file.Paths
 @Configuration
 class WebConfig : WebMvcConfigurer {
     override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
-        // 서버 실행 경로 기준 app-builds 폴더를 /app-builds/** 로 웹 서빙
-        val appBuildsPath = Paths.get("app-builds").toAbsolutePath().toUri().toString()
+        // 서버 실행 경로(컨테이너 /app) 기준 app-builds 폴더를 서빙
         registry.addResourceHandler("/app-builds/**")
-            .addResourceLocations(appBuildsPath)
+            .addResourceLocations("file:app-builds/")
     }
 }

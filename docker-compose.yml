@@ -13,6 +13,7 @@ services:
       - "8001:8080"
     volumes:
       - /etc/localtime:/etc/localtime:ro
+      - ./app-builds:/app/app-builds:ro
     logging:
       driver: "json-file"
       options:
@@ -31,6 +32,7 @@ services:
       - "8002:8080"
     volumes:
       - /etc/localtime:/etc/localtime:ro
+      - ./app-builds:/app/app-builds:ro
     logging:
       driver: "json-file"
       options:
