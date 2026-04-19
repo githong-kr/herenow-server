@@ -42,4 +42,3 @@ out/
 
 ### Custom App Build Distributions ###
 /app-builds/
-/src/main/resources/static/download.html
