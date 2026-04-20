@@ -4,7 +4,6 @@
   "description": "NPM scripts for convenient branch deployment",
   "scripts": {
     "deploy:test": "git push origin main:d/test",
-    "deploy:prod": "git push origin main:d/prod",
-    "deploy:apk:test": "ssh bale@192.168.45.2 'mkdir -p /Users/bale/Documents/release/herenow-server/app-builds' && scp app-builds/herenow-dev.apk bale@192.168.45.2:/Users/bale/Documents/release/herenow-server/app-builds/"
+    "deploy:prod": "git push origin main:d/prod"
   }
 }
