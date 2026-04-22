@@ -28,10 +28,7 @@ class SpaceService(
         return memberships.mapNotNull { membership ->
             spaceRepository.findById(membership.spaceId).orElse(null)?.let { space ->
                 val memberCount = spaceMemberRepository.findBySpaceId(space.id).size
-                SpaceResponse(
-                    id = space.id, name = space.name, inviteCode = space.inviteCode,
-                    role = membership.role, memberCount = memberCount, createdAt = space.createdAt
-                )
+                space.toResponse(membership.role, memberCount)
             }
         }
     }
@@ -44,10 +41,7 @@ class SpaceService(
         spaceMemberRepository.save(SpaceMemberEntity(
             spaceId = space.id, userId = userId, role = "OWNER"
         ))
-        return SpaceResponse(
-            id = space.id, name = space.name, inviteCode = space.inviteCode,
-            role = "OWNER", memberCount = 1, createdAt = space.createdAt
-        )
+        return space.toResponse("OWNER", 1)
     }
 
     fun getSpace(userId: UUID, spaceId: UUID): SpaceResponse {
@@ -55,10 +49,7 @@ class SpaceService(
         val space = spaceRepository.findById(spaceId).orElseThrow { notFound("Space") }
         val membership = spaceMemberRepository.findBySpaceIdAndUserId(spaceId, userId)!!
         val memberCount = spaceMemberRepository.findBySpaceId(spaceId).size
-        return SpaceResponse(
-            id = space.id, name = space.name, inviteCode = space.inviteCode,
-            role = membership.role, memberCount = memberCount, createdAt = space.createdAt
-        )
+        return space.toResponse(membership.role, memberCount)
     }
 
     @Transactional
@@ -69,10 +60,7 @@ class SpaceService(
         space.updatedAt = OffsetDateTime.now()
         spaceRepository.save(space)
         val memberCount = spaceMemberRepository.findBySpaceId(spaceId).size
-        return SpaceResponse(
-            id = space.id, name = space.name, inviteCode = space.inviteCode,
-            role = "OWNER", memberCount = memberCount, createdAt = space.createdAt
-        )
+        return space.toResponse("OWNER", memberCount)
     }
 
     @Transactional
@@ -109,11 +97,7 @@ class SpaceService(
         val members = spaceMemberRepository.findBySpaceId(spaceId)
         return members.map { m ->
             val profile = profileRepository.findById(m.userId).orElse(null)
-            SpaceMemberResponse(
-                id = m.id, userId = m.userId,
-                name = profile?.name, avatarUrl = profile?.avatarUrl,
-                role = m.role, joinedAt = m.joinedAt
-            )
+            m.toResponse(profile)
         }
     }
 
@@ -147,11 +131,7 @@ class SpaceService(
         val requests = spaceJoinRequestRepository.findBySpaceIdAndStatus(spaceId, "PENDING")
         return requests.map { r ->
             val profile = profileRepository.findById(r.userId).orElse(null)
-            JoinRequestResponse(
-                id = r.id, userId = r.userId,
-                userName = profile?.name, avatarUrl = profile?.avatarUrl,
-                inviteCodeUsed = r.inviteCodeUsed, status = r.status, createdAt = r.createdAt
-            )
+            r.toResponse(profile)
         }
     }
 

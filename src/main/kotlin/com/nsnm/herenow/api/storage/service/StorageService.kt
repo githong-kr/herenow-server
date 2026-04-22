@@ -73,12 +73,4 @@ class StorageService(
     }
 
     private fun notFound(entity: String) = ResponseStatusException(HttpStatus.NOT_FOUND, "$entity 를 찾을 수 없습니다.")
-
-    private fun StorageEntity.toResponse() = StorageResponse(
-        id = id, roomId = roomId, name = name,
-        x = x, y = y, w = w, h = h,
-        color = color, topColor = topColor, design = design,
-        gridRows = gridRows, gridCols = gridCols, layout = layout,
-        createdAt = createdAt
-    )
 }

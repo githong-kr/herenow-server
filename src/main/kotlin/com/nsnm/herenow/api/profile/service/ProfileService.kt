@@ -34,9 +34,4 @@ class ProfileService(
         profileRepository.save(profile)
         return profile.toResponse()
     }
-
-    private fun ProfileEntity.toResponse() = ProfileResponse(
-        id = id, name = name, avatarUrl = avatarUrl,
-        defaultSpaceId = defaultSpaceId, marketingConsent = marketingConsent
-    )
 }

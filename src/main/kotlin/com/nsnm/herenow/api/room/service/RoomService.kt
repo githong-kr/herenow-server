@@ -68,9 +68,4 @@ class RoomService(
     }
 
     private fun notFound(entity: String) = ResponseStatusException(HttpStatus.NOT_FOUND, "$entity 를 찾을 수 없습니다.")
-
-    private fun RoomEntity.toResponse() = RoomResponse(
-        id = id, spaceId = spaceId, name = name, icon = icon, color = color,
-        displayOrder = displayOrder, createdAt = createdAt
-    )
 }

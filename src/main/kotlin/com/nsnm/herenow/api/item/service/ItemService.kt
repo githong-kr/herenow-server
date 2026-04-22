@@ -83,18 +83,4 @@ class ItemService(
     }
 
     private fun notFound(entity: String) = ResponseStatusException(HttpStatus.NOT_FOUND, "$entity 를 찾을 수 없습니다.")
-
-    private fun ItemEntity.toResponse(): ItemResponse {
-        val tagList: List<String> = try {
-            mapper.readValue(tags, object : TypeReference<List<String>>() {})
-        } catch (e: Exception) { emptyList() }
-        return ItemResponse(
-            id = id, spaceId = spaceId, storageId = storageId,
-            rowPos = rowPos, colPos = colPos,
-            name = name, icon = icon, photoUrl = photoUrl, categoryId = categoryId,
-            quantity = quantity, minQuantity = minQuantity,
-            expiryDate = expiryDate, memo = memo, tags = tagList,
-            createdAt = createdAt, updatedAt = updatedAt
-        )
-    }
 }

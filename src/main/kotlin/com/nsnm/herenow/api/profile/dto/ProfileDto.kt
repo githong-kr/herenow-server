@@ -1,6 +1,7 @@
 package com.nsnm.herenow.api.profile.dto
 
 import java.util.UUID
+import com.nsnm.herenow.domain.user.entity.ProfileEntity
 
 data class ProfileResponse(
     val id: UUID,
@@ -15,4 +16,9 @@ data class UpdateProfileRequest(
     val avatarUrl: String? = null,
     val defaultSpaceId: UUID? = null,
     val marketingConsent: Boolean? = null
+)
+
+fun ProfileEntity.toResponse() = ProfileResponse(
+    id = id, name = name, avatarUrl = avatarUrl,
+    defaultSpaceId = defaultSpaceId, marketingConsent = marketingConsent
 )

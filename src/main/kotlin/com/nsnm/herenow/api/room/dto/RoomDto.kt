@@ -2,6 +2,7 @@ package com.nsnm.herenow.api.room.dto
 
 import java.time.OffsetDateTime
 import java.util.UUID
+import com.nsnm.herenow.domain.room.entity.RoomEntity
 
 data class CreateRoomRequest(val name: String, val icon: String = "Home", val color: String = "bg-emerald-500")
 data class UpdateRoomRequest(val name: String? = null, val icon: String? = null, val color: String? = null)
@@ -15,4 +16,9 @@ data class RoomResponse(
     val color: String,
     val displayOrder: Int,
     val createdAt: OffsetDateTime
+)
+
+fun RoomEntity.toResponse() = RoomResponse(
+    id = id, spaceId = spaceId, name = name, icon = icon, color = color,
+    displayOrder = displayOrder, createdAt = createdAt
 )

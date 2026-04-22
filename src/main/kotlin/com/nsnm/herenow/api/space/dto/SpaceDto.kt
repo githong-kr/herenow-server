@@ -2,6 +2,10 @@ package com.nsnm.herenow.api.space.dto
 
 import java.time.OffsetDateTime
 import java.util.UUID
+import com.nsnm.herenow.domain.space.entity.SpaceEntity
+import com.nsnm.herenow.domain.space.entity.SpaceMemberEntity
+import com.nsnm.herenow.domain.space.entity.SpaceJoinRequestEntity
+import com.nsnm.herenow.domain.user.entity.ProfileEntity
 
 // ─── Request DTOs ─────────────────────────────────────
 
@@ -49,4 +53,21 @@ data class JoinRequestResponse(
     val inviteCodeUsed: String?,
     val status: String,
     val createdAt: OffsetDateTime
+)
+
+fun SpaceEntity.toResponse(role: String, memberCount: Int) = SpaceResponse(
+    id = id, name = name, inviteCode = inviteCode,
+    role = role, memberCount = memberCount, createdAt = createdAt
+)
+
+fun SpaceMemberEntity.toResponse(profile: ProfileEntity?) = SpaceMemberResponse(
+    id = id, userId = userId,
+    name = profile?.name, avatarUrl = profile?.avatarUrl,
+    role = role, joinedAt = joinedAt
+)
+
+fun SpaceJoinRequestEntity.toResponse(profile: ProfileEntity?) = JoinRequestResponse(
+    id = id, userId = userId,
+    userName = profile?.name, avatarUrl = profile?.avatarUrl,
+    inviteCodeUsed = inviteCodeUsed, status = status, createdAt = createdAt
 )

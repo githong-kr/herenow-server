@@ -3,6 +3,7 @@ package com.nsnm.herenow.api.storage.dto
 import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.UUID
+import com.nsnm.herenow.domain.storage.entity.StorageEntity
 
 data class CreateStorageRequest(
     val name: String,
@@ -47,4 +48,12 @@ data class StorageResponse(
     val gridCols: Int,
     val layout: String,
     val createdAt: OffsetDateTime
+)
+
+fun StorageEntity.toResponse() = StorageResponse(
+    id = id, roomId = roomId, name = name,
+    x = x, y = y, w = w, h = h,
+    color = color, topColor = topColor, design = design,
+    gridRows = gridRows, gridCols = gridCols, layout = layout,
+    createdAt = createdAt
 )

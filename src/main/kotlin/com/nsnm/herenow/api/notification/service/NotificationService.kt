@@ -27,9 +27,4 @@ class NotificationService(
         notificationRepository.save(notification)
         return notification.toResponse()
     }
-
-    private fun NotificationEntity.toResponse() = NotificationResponse(
-        id = id, type = type, title = title, body = body,
-        targetId = targetId, isRead = isRead, createdAt = createdAt
-    )
 }

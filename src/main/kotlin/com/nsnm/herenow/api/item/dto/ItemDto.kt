@@ -3,6 +3,9 @@ package com.nsnm.herenow.api.item.dto
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.util.UUID
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.nsnm.herenow.domain.item.entity.ItemEntity
 
 data class CreateItemRequest(
     val name: String,
@@ -55,3 +58,19 @@ data class ItemResponse(
     val createdAt: OffsetDateTime,
     val updatedAt: OffsetDateTime
 )
+
+private val mapper = jacksonObjectMapper()
+
+fun ItemEntity.toResponse(): ItemResponse {
+    val tagList: List<String> = try {
+        mapper.readValue(tags, object : TypeReference<List<String>>() {})
+    } catch (e: Exception) { emptyList() }
+    return ItemResponse(
+        id = id, spaceId = spaceId, storageId = storageId,
+        rowPos = rowPos, colPos = colPos,
+        name = name, icon = icon, photoUrl = photoUrl, categoryId = categoryId,
+        quantity = quantity, minQuantity = minQuantity,
+        expiryDate = expiryDate, memo = memo, tags = tagList,
+        createdAt = createdAt, updatedAt = updatedAt
+    )
+}

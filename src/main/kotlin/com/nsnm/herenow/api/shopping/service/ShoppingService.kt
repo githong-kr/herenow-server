@@ -56,8 +56,4 @@ class ShoppingService(
     }
 
     private fun notFound(entity: String) = ResponseStatusException(HttpStatus.NOT_FOUND, "$entity 를 찾을 수 없습니다.")
-
-    private fun ShoppingListEntity.toResponse() = ShoppingItemResponse(
-        id = id, spaceId = spaceId, name = name, checked = checked, createdAt = createdAt
-    )
 }
