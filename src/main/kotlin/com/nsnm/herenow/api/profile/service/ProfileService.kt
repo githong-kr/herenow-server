@@ -1,7 +1,6 @@
 package com.nsnm.herenow.api.profile.service
 
-import com.nsnm.herenow.api.profile.dto.ProfileResponse
-import com.nsnm.herenow.api.profile.dto.UpdateProfileRequest
+import com.nsnm.herenow.api.profile.dto.*
 import com.nsnm.herenow.domain.user.entity.ProfileEntity
 import com.nsnm.herenow.domain.user.repository.ProfileRepository
 import org.springframework.http.HttpStatus

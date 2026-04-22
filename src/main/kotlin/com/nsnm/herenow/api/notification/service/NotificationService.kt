@@ -1,6 +1,6 @@
 package com.nsnm.herenow.api.notification.service
 
-import com.nsnm.herenow.api.notification.dto.NotificationResponse
+import com.nsnm.herenow.api.notification.dto.*
 import com.nsnm.herenow.domain.notification.entity.NotificationEntity
 import com.nsnm.herenow.domain.notification.repository.NotificationRepository
 import org.springframework.http.HttpStatus
